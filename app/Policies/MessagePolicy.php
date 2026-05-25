@@ -20,6 +20,7 @@ class MessagePolicy
     public function update(User $user, Message $message): bool
     {
         return $message->user_id === $user->id
+            && $this->isWithinEditWindow($message)
             && $user->isMemberOfGuild($this->messageGuildId($message));
     }
 
@@ -38,5 +39,10 @@ class MessagePolicy
     {
         return $message->room?->guild_id
             ?? $message->room()->value('guild_id');
+    }
+
+    private function isWithinEditWindow(Message $message): bool
+    {
+        return $message->created_at?->copy()->addMinutes(10)->isFuture() ?? false;
     }
 }

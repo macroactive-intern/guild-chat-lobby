@@ -148,7 +148,7 @@ it('blocks message edits after ten minutes', function () {
             'body' => 'Too late.',
         ])
         ->assertForbidden()
-        ->assertJsonPath('error', 'message_edit_expired');
+        ->assertJsonPath('message', 'This action is unauthorized.');
 });
 
 it('shows deleted message bodies as deleted placeholders', function () {
