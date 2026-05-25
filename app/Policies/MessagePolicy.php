@@ -37,7 +37,7 @@ class MessagePolicy
 
     private function messageGuildId(Message $message): mixed
     {
-        $message->load('room');
+        $message->loadMissing('room');
 
         return $message->room->guild_id;
     }
