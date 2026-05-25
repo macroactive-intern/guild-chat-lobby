@@ -24,7 +24,7 @@ class MessageResource extends JsonResource
             'parent_id' => $this->parent_id,
             'replies' => MessageResource::collection($this->whenLoaded('replies')),
             'edited_at' => $this->edited_at,
-            'deleted_at' => $this->deleted_at,
+            'is_deleted' => $this->trashed(),
             'created_at' => $this->created_at,
         ];
     }

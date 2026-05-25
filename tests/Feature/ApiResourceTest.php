@@ -57,7 +57,7 @@ it('serializes messages with eager loaded users and nested replies', function ()
         ])
         ->and($resource['parent_id'])->toBeNull()
         ->and($resource['edited_at'])->not->toBeNull()
-        ->and($resource['deleted_at'])->toBeNull()
+        ->and($resource['is_deleted'])->toBeFalse()
         ->and($resource['created_at'])->not->toBeNull()
         ->and($replyResource['id'])->toBe($reply->id)
         ->and($replyResource['body'])->toBe('Ready.')
@@ -94,8 +94,9 @@ it('masks soft deleted message bodies without exposing original content', functi
     $json = json_encode($resource);
 
     expect($resource['body'])->toBe('[message deleted]')
-        ->and($resource['deleted_at'])->not->toBeNull()
+        ->and($resource['is_deleted'])->toBeTrue()
         ->and($resource['replies'][0]['body'])->toBe('[message deleted]')
+        ->and($resource['replies'][0]['is_deleted'])->toBeTrue()
         ->and($json)->not->toContain('Secret strategy.')
         ->and($json)->not->toContain('Hidden reply.');
 });
