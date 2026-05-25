@@ -4,15 +4,15 @@ use App\Events\UserTyping;
 use App\Models\Guild;
 use App\Models\Room;
 use App\Models\User;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-it('broadcasts typing indicators to the private guild room channel', function () {
+it('broadcasts typing indicators immediately to the private guild room channel', function () {
     [$user, $room] = userTypingEventRoom();
 
     $event = new UserTyping($user, $room);
     $channel = $event->broadcastOn();
 
-    expect($event)->toBeInstanceOf(ShouldBroadcast::class)
+    expect($event)->toBeInstanceOf(ShouldBroadcastNow::class)
         ->and($channel->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
         ->and(method_exists($event, 'onQueue'))->toBeTrue();
 });

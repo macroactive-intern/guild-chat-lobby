@@ -7,11 +7,11 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserTyping implements ShouldBroadcast
+class UserTyping implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, Queueable, SerializesModels;
 
