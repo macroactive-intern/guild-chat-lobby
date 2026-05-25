@@ -2,21 +2,21 @@
 
 namespace App\Events;
 
-use App\Http\Resources\MessageResource;
 use App\Models\Message;
+use Illuminate\Bus\Queueable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcastNow
+class MessageSent implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets, Queueable, SerializesModels;
 
     public function __construct(public Message $message)
     {
-        $this->message->loadMissing(['room', 'user', 'replies.user']);
+        $this->message->loadMissing(['room', 'user']);
     }
 
     public function broadcastOn(): PrivateChannel
@@ -34,7 +34,14 @@ class MessageSent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'message' => (new MessageResource($this->message))->resolve(),
+            'id' => $this->message->id,
+            'body' => $this->message->trashed() ? '[message deleted]' : $this->message->body,
+            'user' => [
+                'id' => $this->message->user->id,
+                'name' => $this->message->user->name,
+            ],
+            'parent_id' => $this->message->parent_id,
+            'created_at' => $this->message->created_at,
         ];
     }
 }
