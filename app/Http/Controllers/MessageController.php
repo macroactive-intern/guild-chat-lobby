@@ -22,7 +22,7 @@ class MessageController extends Controller
     {
         Gate::authorize('view', $room);
 
-        $search = trim((string) $request->string('search'));
+        $search = $request->string('search')->trim()->toString();
 
         $messages = $room->messages()
             ->withTrashed()

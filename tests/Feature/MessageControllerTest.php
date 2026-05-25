@@ -196,7 +196,7 @@ it('searches room messages from the last 30 days and uses the configured page si
     ]);
 
     $response = $this->actingAs($user)
-        ->getJson("/api/rooms/{$room->id}/messages?search=raid")
+        ->getJson("/api/rooms/{$room->id}/messages?search=%20raid%20")
         ->assertOk()
         ->assertJsonPath('meta.per_page', $pageSize)
         ->assertJsonPath('meta.total', $pageSize + 1);
