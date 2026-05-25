@@ -30,6 +30,27 @@ it('tracks online users per room using the presence cache key', function () {
         ]);
 });
 
+it('stores room presence with a 30 second cache ttl', function () {
+    [$room, $user] = presenceServiceRoomAndUser();
+    $expiresAt = now()->addSeconds(30);
+
+    Cache::shouldReceive('get')
+        ->once()
+        ->with("presence.room.{$room->id}", [])
+        ->andReturn([]);
+    Cache::shouldReceive('put')
+        ->once()
+        ->with(
+            "presence.room.{$room->id}",
+            \Mockery::on(fn (array $members): bool => isset($members[$user->id])
+                && $members[$user->id]['id'] === $user->id
+                && $members[$user->id]['name'] === $user->name),
+            \Mockery::on(fn (Carbon $ttl): bool => $ttl->equalTo($expiresAt)),
+        );
+
+    app(PresenceService::class)->markOnline($room, $user);
+});
+
 it('refreshes heartbeat timestamps when a user is marked online again', function () {
     [$room, $user] = presenceServiceRoomAndUser();
     $service = app(PresenceService::class);
