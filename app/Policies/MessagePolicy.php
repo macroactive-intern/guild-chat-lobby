@@ -37,8 +37,9 @@ class MessagePolicy
 
     private function messageGuildId(Message $message): mixed
     {
-        return $message->room?->guild_id
-            ?? $message->room()->value('guild_id');
+        $message->load('room');
+
+        return $message->room->guild_id;
     }
 
     private function isWithinEditWindow(Message $message): bool
