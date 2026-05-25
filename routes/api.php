@@ -11,14 +11,32 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/guilds/{guild}/rooms', [RoomController::class, 'index']);
-    Route::post('/guilds/{guild}/rooms', [RoomController::class, 'store']);
-    Route::get('/rooms/{room}/messages', [MessageController::class, 'index']);
-    Route::post('/rooms/{room}/messages', [MessageController::class, 'store']);
-    Route::post('/rooms/{room}/read', [MessageController::class, 'read']);
-    Route::post('/rooms/{room}/typing', [MessageController::class, 'typing']);
-    Route::get('/rooms/{room}', [RoomController::class, 'show']);
-    Route::post('/rooms/{room}/heartbeat', RoomHeartbeatController::class);
-    Route::patch('/messages/{message}', [MessageController::class, 'update']);
-    Route::delete('/messages/{message}', [MessageController::class, 'destroy']);
+    Route::prefix('guilds/{guild}')->group(function () {
+        Route::get('/rooms', [RoomController::class, 'index'])
+            ->middleware('can:view,guild');
+        Route::post('/rooms', [RoomController::class, 'store'])
+            ->middleware('can:createRoom,guild');
+    });
+
+    Route::prefix('rooms/{room}')->group(function () {
+        Route::get('/', [RoomController::class, 'show'])
+            ->middleware('can:view,room');
+        Route::get('/messages', [MessageController::class, 'index'])
+            ->middleware('can:view,room');
+        Route::post('/messages', [MessageController::class, 'store'])
+            ->middleware('can:sendMessage,room');
+        Route::post('/read', [MessageController::class, 'read'])
+            ->middleware('can:view,room');
+        Route::post('/typing', [MessageController::class, 'typing'])
+            ->middleware('can:view,room');
+        Route::post('/heartbeat', RoomHeartbeatController::class)
+            ->middleware('can:view,room');
+    });
+
+    Route::prefix('messages/{message}')->group(function () {
+        Route::patch('/', [MessageController::class, 'update'])
+            ->middleware('can:update,message');
+        Route::delete('/', [MessageController::class, 'destroy'])
+            ->middleware('can:delete,message');
+    });
 });
