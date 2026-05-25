@@ -145,7 +145,7 @@ it('searches room messages from the last 30 days and paginates 20 per page', fun
         ->not->toContain('raid search other room');
 });
 
-it('marks room messages as read for authenticated guild members', function () {
+it('stores the latest read message for authenticated guild members', function () {
     [$user, $room] = messageControllerMemberRoom();
     $author = User::factory()->create();
     $messages = collect(range(1, 3))->map(fn (int $number) => Message::create([
@@ -153,21 +153,22 @@ it('marks room messages as read for authenticated guild members', function () {
         'user_id' => $author->id,
         'body' => "Message {$number}",
     ]));
+    $latestMessage = $messages->last();
 
     $this->actingAs($user)
         ->postJson("/api/rooms/{$room->id}/read")
         ->assertOk()
-        ->assertJsonPath('messages_marked_read', 3);
+        ->assertJsonPath('latest_read_message_id', $latestMessage->id)
+        ->assertJsonStructure(['read_at']);
 
-    foreach ($messages as $message) {
-        $this->assertDatabaseHas('message_reads', [
-            'message_id' => $message->id,
-            'user_id' => $user->id,
-        ]);
-    }
+    $this->assertDatabaseHas('message_reads', [
+        'message_id' => $latestMessage->id,
+        'user_id' => $user->id,
+    ]);
+    expect(MessageRead::where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('updates existing room read receipts instead of duplicating them', function () {
+it('updates existing latest read receipts instead of duplicating them', function () {
     [$user, $room] = messageControllerMemberRoom();
     $author = User::factory()->create();
     $message = Message::create([
@@ -188,6 +189,18 @@ it('updates existing room read receipts instead of duplicating them', function (
     expect(MessageRead::where('message_id', $message->id)
         ->where('user_id', $user->id)
         ->count())->toBe(1);
+});
+
+it('returns a null latest read message id for empty rooms', function () {
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/read")
+        ->assertOk()
+        ->assertJsonPath('latest_read_message_id', null)
+        ->assertJsonStructure(['read_at']);
+
+    expect(MessageRead::count())->toBe(0);
 });
 
 it('broadcasts typing indicators without persisting anything', function () {

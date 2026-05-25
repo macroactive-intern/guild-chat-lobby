@@ -70,26 +70,29 @@ class MessageController extends Controller
     {
         Gate::authorize('view', $room);
 
-        $messageIds = $room->messages()->pluck('id');
+        $latestMessageId = $room->messages()
+            ->withTrashed()
+            ->latest('id')
+            ->value('id');
         $readAt = now();
 
-        if ($messageIds->isNotEmpty()) {
+        if ($latestMessageId) {
             MessageRead::upsert(
-                $messageIds->map(fn (int $messageId): array => [
-                    'message_id' => $messageId,
+                [[
+                    'message_id' => $latestMessageId,
                     'user_id' => $request->user()->id,
                     'read_at' => $readAt,
                     'created_at' => $readAt,
                     'updated_at' => $readAt,
-                ])->all(),
+                ]],
                 ['message_id', 'user_id'],
                 ['read_at', 'updated_at'],
             );
         }
 
         return response()->json([
+            'latest_read_message_id' => $latestMessageId,
             'read_at' => $readAt,
-            'messages_marked_read' => $messageIds->count(),
         ]);
     }
 
