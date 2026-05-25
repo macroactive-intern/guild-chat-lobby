@@ -50,6 +50,7 @@ it('returns 429 when chat service rate limiting rejects spam', function () {
             'body' => 'Second.',
         ])
         ->assertTooManyRequests()
+        ->assertHeader('Retry-After', (string) config('chat.messages.rate_limit_seconds'))
         ->assertExactJson([
             'message' => 'You are sending messages too quickly.',
             'error' => 'too_many_messages',

@@ -164,7 +164,7 @@ class ChatService
      */
     private function hitRateLimit(int $userId, int $roomId): void
     {
-        $lock = Cache::lock("chat-rate.{$userId}.{$roomId}", 1);
+        $lock = Cache::lock("chat-rate.{$userId}.{$roomId}", (int) config('chat.messages.rate_limit_seconds'));
 
         if (! $lock->get()) {
             throw new TooManyMessagesException();

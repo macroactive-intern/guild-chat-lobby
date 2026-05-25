@@ -17,6 +17,8 @@ class TooManyMessagesException extends RuntimeException
         return response()->json([
             'message' => $this->getMessage(),
             'error' => 'too_many_messages',
-        ], 429);
+        ], 429)->withHeaders([
+            'Retry-After' => (string) config('chat.messages.rate_limit_seconds'),
+        ]);
     }
 }

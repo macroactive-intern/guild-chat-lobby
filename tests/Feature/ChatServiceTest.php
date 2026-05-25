@@ -211,6 +211,7 @@ it('returns API friendly JSON for chat domain exceptions', function () {
 
     $this->getJson('/test/exceptions/too-many-messages')
         ->assertTooManyRequests()
+        ->assertHeader('Retry-After', (string) config('chat.messages.rate_limit_seconds'))
         ->assertExactJson([
             'message' => 'You are sending messages too quickly.',
             'error' => 'too_many_messages',
