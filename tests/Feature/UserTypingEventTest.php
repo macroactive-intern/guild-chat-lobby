@@ -23,7 +23,7 @@ it('broadcasts only transient typing payload data', function () {
     $event = new UserTyping($user, $room);
     $payload = $event->broadcastWith();
 
-    expect($event->broadcastAs())->toBe('UserTyping')
+    expect($event->broadcastAs())->toBe('user.typing')
         ->and($payload)->toBe([
             'room_id' => $room->id,
             'user_id' => $user->id,

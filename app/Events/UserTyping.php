@@ -31,7 +31,7 @@ class UserTyping implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'UserTyping';
+        return 'user.typing';
     }
 
     public function broadcastWith(): array

@@ -18,23 +18,31 @@ const roomChannel = subscribeToRoomPresence({
         console.log('User left:', user);
     },
     onMessageSent: (message) => {
-        console.log('MessageSent:', message);
+        console.log('message.sent:', message);
     },
     onMessageEdited: (message) => {
-        console.log('MessageEdited:', message);
+        console.log('message.edited:', message);
     },
     onMessageDeleted: (message) => {
-        console.log('MessageDeleted:', message);
+        console.log('message.deleted:', message);
+    },
+    onReactionAdded: (reaction) => {
+        console.log('reaction.added:', reaction);
+    },
+    onRoomStatusUpdated: (room) => {
+        console.log('room.status.updated:', room);
     },
     onUserTyping: (typing) => {
-        console.log('UserTyping:', typing);
+        console.log('user.typing:', typing);
     },
 });
 
 export function stopListening(guildId = 1, roomId = 1) {
-    roomChannel.stopListening('MessageSent');
+    roomChannel.stopListening('.message.sent');
     roomChannel.stopListening('.message.edited');
     roomChannel.stopListening('.message.deleted');
-    roomChannel.stopListening('.UserTyping');
+    roomChannel.stopListening('.reaction.added');
+    roomChannel.stopListening('.room.status.updated');
+    roomChannel.stopListening('.user.typing');
     echo.leave(`guild.${guildId}.room.${roomId}`);
 }

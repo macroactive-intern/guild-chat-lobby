@@ -36,6 +36,8 @@ export function subscribeToRoomPresence({
     onMessageDeleted = () => {},
     onMessageEdited = () => {},
     onMessageSent = () => {},
+    onReactionAdded = () => {},
+    onRoomStatusUpdated = () => {},
     onUserTyping = () => {},
 }) {
     return echo
@@ -43,10 +45,12 @@ export function subscribeToRoomPresence({
         .here(onHere)
         .joining(onJoining)
         .leaving(onLeaving)
-        .listen('MessageSent', onMessageSent)
+        .listen('.message.sent', onMessageSent)
         .listen('.message.edited', onMessageEdited)
         .listen('.message.deleted', onMessageDeleted)
-        .listen('.UserTyping', onUserTyping);
+        .listen('.reaction.added', onReactionAdded)
+        .listen('.room.status.updated', onRoomStatusUpdated)
+        .listen('.user.typing', onUserTyping);
 }
 
 window.Echo = createEcho();

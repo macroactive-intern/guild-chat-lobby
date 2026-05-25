@@ -34,7 +34,7 @@ class RoomStatusUpdated implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'RoomStatusUpdated';
+        return 'room.status.updated';
     }
 
     public function broadcastWith(): array

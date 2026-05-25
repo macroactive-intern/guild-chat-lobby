@@ -17,6 +17,7 @@ it('broadcasts queued message sent events to the private guild room channel', fu
 
     expect($event)->toBeInstanceOf(ShouldBroadcast::class)
         ->and($channels->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
+        ->and($event->broadcastAs())->toBe('message.sent')
         ->and(method_exists($event, 'onQueue'))->toBeTrue();
 });
 

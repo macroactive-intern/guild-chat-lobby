@@ -82,7 +82,7 @@ it('broadcasts room status updates to the private room channel', function () {
     $payload = $event->broadcastWith();
 
     expect($event)->toBeInstanceOf(ShouldBroadcast::class)
-        ->and($event->broadcastAs())->toBe('RoomStatusUpdated')
+        ->and($event->broadcastAs())->toBe('room.status.updated')
         ->and($channel->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
         ->and($payload['id'])->toBe($room->id)
         ->and($payload['guild_id'])->toBe($room->guild_id)

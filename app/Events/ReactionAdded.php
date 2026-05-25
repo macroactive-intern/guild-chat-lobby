@@ -34,7 +34,7 @@ class ReactionAdded implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'ReactionAdded';
+        return 'reaction.added';
     }
 
     public function broadcastWith(): array

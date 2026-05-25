@@ -123,8 +123,12 @@ Presence subscriptions support:
 
 The room presence channel listens for:
 
-- `MessageSent`
-- `UserTyping`
+- `message.sent`
+- `message.edited`
+- `message.deleted`
+- `reaction.added`
+- `room.status.updated`
+- `user.typing`
 
 Plain JavaScript example:
 
@@ -140,8 +144,12 @@ subscribeToRoomPresence({
     onHere: (users) => console.log(users),
     onJoining: (user) => console.log('joining', user),
     onLeaving: (user) => console.log('leaving', user),
-    onMessageSent: (message) => console.log('MessageSent', message),
-    onUserTyping: (typing) => console.log('UserTyping', typing),
+    onMessageSent: (message) => console.log('message.sent', message),
+    onMessageEdited: (message) => console.log('message.edited', message),
+    onMessageDeleted: (message) => console.log('message.deleted', message),
+    onReactionAdded: (reaction) => console.log('reaction.added', reaction),
+    onRoomStatusUpdated: (room) => console.log('room.status.updated', room),
+    onUserTyping: (typing) => console.log('user.typing', typing),
 });
 ```
 

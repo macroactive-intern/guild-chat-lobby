@@ -135,7 +135,7 @@ it('broadcasts reaction added events to the private room channel', function () {
     $payload = $event->broadcastWith();
 
     expect($event)->toBeInstanceOf(ShouldBroadcast::class)
-        ->and($event->broadcastAs())->toBe('ReactionAdded')
+        ->and($event->broadcastAs())->toBe('reaction.added')
         ->and($channel->name)->toBe("private-guild.{$message->room->guild_id}.room.{$message->room_id}")
         ->and($payload['message_id'])->toBe($message->id)
         ->and($payload['emoji'])->toBe(':fire:')
