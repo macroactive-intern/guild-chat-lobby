@@ -36,6 +36,7 @@ class ChatService
 
         $message->load(['room', 'user', 'replies.user']);
 
+        // Keep this outside the transaction so broadcasts queue only after the message commits.
         event(new MessageSent($message));
 
         return $message;
