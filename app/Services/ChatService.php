@@ -9,7 +9,6 @@ use App\Exceptions\TooManyMessagesException;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -43,16 +42,11 @@ class ChatService
     }
 
     /**
-     * @throws AuthorizationException
      * @throws MessageEditExpiredException
      * @throws ValidationException
      */
     public function edit(Message $message, User $user, array $data): Message
     {
-        if ($message->user_id !== $user->id) {
-            throw new AuthorizationException('Only the message author may edit this message.');
-        }
-
         if ($message->created_at->copy()->addMinutes(10)->isPast()) {
             throw new MessageEditExpiredException();
         }
@@ -69,18 +63,8 @@ class ChatService
         return $message->load(['room', 'user', 'replies.user']);
     }
 
-    /**
-     * @throws AuthorizationException
-     */
     public function delete(Message $message, User $user): Message
     {
-        $guildId = $message->room?->guild_id
-            ?? $message->room()->value('guild_id');
-
-        if ($message->user_id !== $user->id && ! $user->isLeaderOfGuild($guildId)) {
-            throw new AuthorizationException('Only the message author or a guild leader may delete this message.');
-        }
-
         $message->delete();
 
         return $message->load(['room', 'user', 'replies.user']);

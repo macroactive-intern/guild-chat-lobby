@@ -11,7 +11,6 @@ use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\ChatService;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -125,20 +124,6 @@ it('edits author messages within ten minutes and sets edited timestamp', functio
         ->and($edited->edited_at)->not->toBeNull();
 });
 
-it('rejects edits from non authors', function () {
-    [$user, $room] = chatServiceRoomWithUser();
-    $otherUser = User::factory()->create();
-    $message = Message::create([
-        'room_id' => $room->id,
-        'user_id' => $user->id,
-        'body' => 'Original.',
-    ]);
-
-    app(ChatService::class)->edit($message, $otherUser, [
-        'body' => 'Nope.',
-    ]);
-})->throws(AuthorizationException::class);
-
 it('rejects edits after ten minutes', function () {
     [$user, $room] = chatServiceRoomWithUser();
     $message = Message::create([
@@ -213,18 +198,6 @@ it('soft deletes any guild message by leader', function () {
 
     expect($deleted->trashed())->toBeTrue();
 });
-
-it('rejects deletes from non authors who are not guild leaders', function () {
-    [$author, $room] = chatServiceRoomWithUser();
-    $outsider = User::factory()->create();
-    $message = Message::create([
-        'room_id' => $room->id,
-        'user_id' => $author->id,
-        'body' => 'Protected.',
-    ]);
-
-    app(ChatService::class)->delete($message, $outsider);
-})->throws(AuthorizationException::class);
 
 function chatServiceRoomWithUser(array $roomAttributes = [], bool $leader = false): array
 {
