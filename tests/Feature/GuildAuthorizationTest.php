@@ -5,6 +5,7 @@ use App\Models\GuildMember;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 function guildWithUsers(): array
 {
@@ -52,6 +53,30 @@ it('checks guild membership helpers for members and leaders', function () {
         ->and($member->isLeaderOfGuild($guild->id))->toBeFalse()
         ->and($outsider->isMemberOfGuild($guild->id))->toBeFalse()
         ->and($outsider->isLeaderOfGuild($guild->id))->toBeFalse();
+});
+
+it('memoizes guild membership helper lookups per user instance and guild', function () {
+    $leader = User::factory()->create();
+    $guild = Guild::create(['name' => 'Raid Guild']);
+
+    GuildMember::create([
+        'guild_id' => $guild->id,
+        'user_id' => $leader->id,
+        'is_leader' => true,
+    ]);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    expect($leader->isMemberOfGuild($guild->id))->toBeTrue()
+        ->and($leader->isLeaderOfGuild($guild->id))->toBeTrue()
+        ->and($leader->isMemberOfGuild($guild->id))->toBeTrue()
+        ->and($leader->isLeaderOfGuild($guild->id))->toBeTrue();
+
+    $membershipQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query): bool => str_contains(strtolower($query['query']), 'guild_members'));
+
+    expect($membershipQueries)->toHaveCount(1);
 });
 
 it('authorizes members and leaders through guild and room policies', function () {

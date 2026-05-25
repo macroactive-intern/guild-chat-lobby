@@ -16,6 +16,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * @var array<string, array{member: bool, leader: bool}>
+     */
+    private array $membershipCache = [];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -56,16 +61,29 @@ class User extends Authenticatable
 
     public function isMemberOfGuild($guildId): bool
     {
-        return $this->guildMemberships()
-            ->where('guild_id', $guildId)
-            ->exists();
+        return $this->guildMembershipFor($guildId)['member'];
     }
 
     public function isLeaderOfGuild($guildId): bool
     {
-        return $this->guildMemberships()
+        return $this->guildMembershipFor($guildId)['leader'];
+    }
+
+    private function guildMembershipFor($guildId): array
+    {
+        $cacheKey = (string) $guildId;
+
+        if (array_key_exists($cacheKey, $this->membershipCache)) {
+            return $this->membershipCache[$cacheKey];
+        }
+
+        $membership = $this->guildMemberships()
             ->where('guild_id', $guildId)
-            ->where('is_leader', true)
-            ->exists();
+            ->first(['is_leader']);
+
+        return $this->membershipCache[$cacheKey] = [
+            'member' => $membership !== null,
+            'leader' => (bool) $membership?->is_leader,
+        ];
     }
 }
