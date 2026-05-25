@@ -32,7 +32,7 @@ class MessageController extends Controller
                 ->whereNull('deleted_at')
                 ->where('body', 'like', "%{$search}%"))
             ->latest('id')
-            ->paginate(20);
+            ->paginate((int) config('chat.messages.index_page_size'));
 
         return MessageResource::collection($messages);
     }

@@ -133,14 +133,15 @@ it('rejects replies whose parent message belongs to another room', function () {
 
 it('blocks message edits after ten minutes', function () {
     [$user, $room] = realtimeChatMemberRoom();
+    $editWindowMinutes = (int) config('chat.messages.edit_window_minutes');
     $message = Message::create([
         'room_id' => $room->id,
         'user_id' => $user->id,
         'body' => 'Original.',
     ]);
     $message->forceFill([
-        'created_at' => now()->subMinutes(11),
-        'updated_at' => now()->subMinutes(11),
+        'created_at' => now()->subMinutes($editWindowMinutes + 1),
+        'updated_at' => now()->subMinutes($editWindowMinutes + 1),
     ])->save();
 
     $this->actingAs($user)

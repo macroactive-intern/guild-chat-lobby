@@ -6,9 +6,10 @@ use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 
-it('lists guild rooms for members with pagination and the latest 50 messages', function () {
+it('lists guild rooms for members with pagination and the configured latest messages', function () {
     $member = User::factory()->create(['name' => 'Nate']);
     $messageUser = User::factory()->create(['name' => 'Scout']);
+    $latestMessagesLimit = (int) config('chat.rooms.latest_messages_limit');
     [$guild, $firstRoom] = roomControllerGuildWithRoom('alpha');
     $secondRoom = Room::create([
         'guild_id' => $guild->id,
@@ -29,7 +30,7 @@ it('lists guild rooms for members with pagination and the latest 50 messages', f
         'user_id' => $member->id,
     ]);
 
-    foreach (range(1, 55) as $number) {
+    foreach (range(1, $latestMessagesLimit + 5) as $number) {
         Message::create([
             'room_id' => $thirdRoom->id,
             'user_id' => $messageUser->id,
@@ -39,7 +40,7 @@ it('lists guild rooms for members with pagination and the latest 50 messages', f
         ]);
     }
 
-    foreach (range(1, 55) as $number) {
+    foreach (range(1, $latestMessagesLimit + 5) as $number) {
         Message::create([
             'room_id' => $secondRoom->id,
             'user_id' => $messageUser->id,
@@ -54,17 +55,19 @@ it('lists guild rooms for members with pagination and the latest 50 messages', f
         ->assertOk()
         ->assertJsonPath('meta.per_page', 2)
         ->assertJsonPath('meta.total', 3);
+    $latestMessageBody = 'Message '.($latestMessagesLimit + 5);
+    $latestBetaMessageBody = 'Beta message '.($latestMessagesLimit + 5);
 
     expect($response->json('data'))->toHaveCount(2)
         ->and($response->json('data.0.id'))->toBe($thirdRoom->id)
-        ->and($response->json('data.0.messages'))->toHaveCount(50)
+        ->and($response->json('data.0.messages'))->toHaveCount($latestMessagesLimit)
         ->and(collect($response->json('data.0.messages'))->pluck('body')->all())
-        ->toContain('Message 55')
+        ->toContain($latestMessageBody)
         ->not->toContain('Message 1')
         ->and($response->json('data.1.id'))->toBe($secondRoom->id)
-        ->and($response->json('data.1.messages'))->toHaveCount(50)
+        ->and($response->json('data.1.messages'))->toHaveCount($latestMessagesLimit)
         ->and(collect($response->json('data.1.messages'))->pluck('body')->all())
-        ->toContain('Beta message 55')
+        ->toContain($latestBetaMessageBody)
         ->not->toContain('Beta message 1')
         ->and(collect($response->json('data'))->pluck('id')->all())
         ->not->toContain($firstRoom->id);
@@ -123,9 +126,10 @@ it('rejects room creation for normal guild members', function () {
         ->assertForbidden();
 });
 
-it('shows a room to guild members with the latest 50 messages', function () {
+it('shows a room to guild members with the configured latest messages', function () {
     $member = User::factory()->create();
     $messageUser = User::factory()->create(['name' => 'Scout']);
+    $latestMessagesLimit = (int) config('chat.rooms.latest_messages_limit');
     [$guild, $room] = roomControllerGuildWithRoom();
 
     GuildMember::create([
@@ -133,7 +137,7 @@ it('shows a room to guild members with the latest 50 messages', function () {
         'user_id' => $member->id,
     ]);
 
-    foreach (range(1, 51) as $number) {
+    foreach (range(1, $latestMessagesLimit + 1) as $number) {
         Message::create([
             'room_id' => $room->id,
             'user_id' => $messageUser->id,
@@ -147,8 +151,8 @@ it('shows a room to guild members with the latest 50 messages', function () {
         ->getJson("/api/rooms/{$room->id}")
         ->assertOk()
         ->assertJsonPath('data.id', $room->id)
-        ->assertJsonCount(50, 'data.messages')
-        ->assertJsonPath('data.messages.0.body', 'Room message 51');
+        ->assertJsonCount($latestMessagesLimit, 'data.messages')
+        ->assertJsonPath('data.messages.0.body', 'Room message '.($latestMessagesLimit + 1));
 });
 
 it('rejects room show requests from users outside the guild', function () {

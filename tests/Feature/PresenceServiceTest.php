@@ -34,9 +34,9 @@ it('tracks online users per room using the presence cache key', function () {
         ]);
 });
 
-it('stores room presence with a 30 second cache ttl', function () {
+it('stores room presence with the configured cache ttl', function () {
     [$room, $user] = presenceServiceRoomAndUser();
-    $expiresAt = now()->addSeconds(30);
+    $expiresAt = now()->addSeconds((int) config('chat.presence.ttl_seconds'));
 
     Cache::shouldReceive('get')
         ->once()
@@ -143,7 +143,7 @@ it('filters stale members after the ttl window', function () {
 
     $service->markOnline($room, $user);
 
-    Carbon::setTestNow(now()->addSeconds(31));
+    Carbon::setTestNow(now()->addSeconds((int) config('chat.presence.ttl_seconds') + 1));
 
     expect($service->onlineMembers($room))->toBeEmpty()
         ->and(Cache::get("presence.room.{$room->id}"))->toBeNull();

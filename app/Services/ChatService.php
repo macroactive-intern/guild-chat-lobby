@@ -49,7 +49,9 @@ class ChatService
      */
     public function edit(Message $message, User $user, array $data): Message
     {
-        if ($message->created_at->copy()->addMinutes(10)->isPast()) {
+        if ($message->created_at->copy()
+            ->addMinutes((int) config('chat.messages.edit_window_minutes'))
+            ->isPast()) {
             throw new MessageEditExpiredException();
         }
 

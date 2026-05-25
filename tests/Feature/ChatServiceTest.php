@@ -135,18 +135,19 @@ it('rejects sending messages to archived rooms', function () {
     ]);
 })->throws(ArchivedRoomException::class);
 
-it('edits author messages within ten minutes and sets edited timestamp', function () {
+it('edits author messages within the configured edit window and sets edited timestamp', function () {
     Event::fake([MessageEdited::class]);
 
     [$user, $room] = chatServiceRoomWithUser();
+    $editWindowMinutes = (int) config('chat.messages.edit_window_minutes');
     $message = Message::create([
         'room_id' => $room->id,
         'user_id' => $user->id,
         'body' => 'Before.',
     ]);
     $message->forceFill([
-        'created_at' => now()->subMinutes(9),
-        'updated_at' => now()->subMinutes(9),
+        'created_at' => now()->subMinutes($editWindowMinutes - 1),
+        'updated_at' => now()->subMinutes($editWindowMinutes - 1),
     ])->save();
 
     $edited = app(ChatService::class)->edit($message, $user, [
@@ -159,16 +160,17 @@ it('edits author messages within ten minutes and sets edited timestamp', functio
     Event::assertDispatched(MessageEdited::class, fn (MessageEdited $event) => $event->message->is($edited));
 });
 
-it('rejects edits after ten minutes', function () {
+it('rejects edits after the configured edit window', function () {
     [$user, $room] = chatServiceRoomWithUser();
+    $editWindowMinutes = (int) config('chat.messages.edit_window_minutes');
     $message = Message::create([
         'room_id' => $room->id,
         'user_id' => $user->id,
         'body' => 'Original.',
     ]);
     $message->forceFill([
-        'created_at' => now()->subMinutes(11),
-        'updated_at' => now()->subMinutes(11),
+        'created_at' => now()->subMinutes($editWindowMinutes + 1),
+        'updated_at' => now()->subMinutes($editWindowMinutes + 1),
     ])->save();
 
     app(ChatService::class)->edit($message, $user, [
@@ -194,7 +196,10 @@ it('returns API friendly JSON for chat domain exceptions', function () {
     $this->getJson('/test/exceptions/message-edit-expired')
         ->assertForbidden()
         ->assertExactJson([
-            'message' => 'Messages can only be edited for 10 minutes after creation.',
+            'message' => sprintf(
+                'Messages can only be edited for %d minutes after creation.',
+                (int) config('chat.messages.edit_window_minutes'),
+            ),
             'error' => 'message_edit_expired',
         ]);
 

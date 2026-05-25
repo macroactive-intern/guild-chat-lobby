@@ -89,7 +89,7 @@ class RoomController extends Controller
                 ->withTrashed()
                 ->with(['user', 'replies.user'])
                 ->latest('id')
-                ->limit(50),
+                ->limit((int) config('chat.rooms.latest_messages_limit')),
         ];
     }
 
@@ -110,7 +110,7 @@ class RoomController extends Controller
 
         $messageIds = DB::query()
             ->fromSub($rankedMessages, 'ranked_messages')
-            ->where('room_message_rank', '<=', 50)
+            ->where('room_message_rank', '<=', (int) config('chat.rooms.latest_messages_limit'))
             ->pluck('id');
 
         $messages = Message::query()

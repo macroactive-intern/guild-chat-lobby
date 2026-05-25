@@ -155,7 +155,7 @@ subscribeToRoomPresence({
 });
 ```
 
-Presence cache updates are pushed with `presence.updated` when a member first heartbeats online or explicitly clears their heartbeat with `DELETE /api/rooms/{room}/heartbeat`. The 30-second TTL remains a fallback for abandoned sessions.
+Presence cache updates are pushed with `presence.updated` when a member first heartbeats online or explicitly clears their heartbeat with `DELETE /api/rooms/{room}/heartbeat`. The configured presence TTL remains a fallback for abandoned sessions.
 
 Vue integration example:
 

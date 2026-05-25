@@ -43,6 +43,8 @@ class MessagePolicy
 
     private function isWithinEditWindow(Message $message): bool
     {
-        return $message->created_at?->copy()->addMinutes(10)->isFuture() ?? false;
+        return $message->created_at?->copy()
+            ->addMinutes((int) config('chat.messages.edit_window_minutes'))
+            ->isFuture() ?? false;
     }
 }

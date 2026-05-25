@@ -125,14 +125,15 @@ it('authorizes message owners and guild leaders through message policies', funct
 
 it('rejects message updates outside the edit window through message policy', function () {
     [, $member, , , $room] = guildWithUsers();
+    $editWindowMinutes = (int) config('chat.messages.edit_window_minutes');
     $expiredMessage = Message::create([
         'room_id' => $room->id,
         'user_id' => $member->id,
         'body' => 'Too old to edit.',
     ]);
     $expiredMessage->forceFill([
-        'created_at' => now()->subMinutes(11),
-        'updated_at' => now()->subMinutes(11),
+        'created_at' => now()->subMinutes($editWindowMinutes + 1),
+        'updated_at' => now()->subMinutes($editWindowMinutes + 1),
     ])->save();
 
     expect($member->can('update', $expiredMessage))->toBeFalse()

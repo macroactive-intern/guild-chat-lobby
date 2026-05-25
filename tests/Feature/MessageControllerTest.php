@@ -127,12 +127,13 @@ it('deletes messages through the chat service and masks the response body', func
     ]);
 });
 
-it('searches room messages from the last 30 days and paginates 20 per page', function () {
+it('searches room messages from the last 30 days and uses the configured page size', function () {
     [$user, $room] = messageControllerMemberRoom();
     $author = User::factory()->create(['name' => 'Scout']);
     [, $otherRoom] = messageControllerMemberRoom();
+    $pageSize = (int) config('chat.messages.index_page_size');
 
-    foreach (range(1, 21) as $number) {
+    foreach (range(1, $pageSize + 1) as $number) {
         $message = Message::create([
             'room_id' => $room->id,
             'user_id' => $author->id,
@@ -167,12 +168,13 @@ it('searches room messages from the last 30 days and paginates 20 per page', fun
     $response = $this->actingAs($user)
         ->getJson("/api/rooms/{$room->id}/messages?search=raid")
         ->assertOk()
-        ->assertJsonPath('meta.per_page', 20)
-        ->assertJsonPath('meta.total', 21);
+        ->assertJsonPath('meta.per_page', $pageSize)
+        ->assertJsonPath('meta.total', $pageSize + 1);
+    $latestSearchMessageBody = 'raid search '.($pageSize + 1);
 
-    expect($response->json('data'))->toHaveCount(20)
+    expect($response->json('data'))->toHaveCount($pageSize)
         ->and(collect($response->json('data'))->pluck('body')->all())
-        ->toContain('raid search 21')
+        ->toContain($latestSearchMessageBody)
         ->not->toContain('raid search too old')
         ->not->toContain('different topic')
         ->not->toContain('raid search other room');

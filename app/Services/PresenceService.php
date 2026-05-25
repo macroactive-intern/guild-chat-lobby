@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Cache;
 
 class PresenceService
 {
-    private const TTL_SECONDS = 30;
-
     public function markOnline(Room $room, User $user): void
     {
         $members = $this->freshMembers($room);
@@ -81,7 +79,7 @@ class PresenceService
 
     private function freshMembers(Room $room): array
     {
-        $expiresBefore = now()->subSeconds(self::TTL_SECONDS)->timestamp;
+        $expiresBefore = now()->subSeconds($this->ttlSeconds())->timestamp;
 
         return collect(Cache::get($this->key($room), []))
             ->filter(fn (array $member): bool => ($member['last_seen_at'] ?? 0) > $expiresBefore)
@@ -90,11 +88,16 @@ class PresenceService
 
     private function putMembers(Room $room, array $members): void
     {
-        Cache::put($this->key($room), $members, now()->addSeconds(self::TTL_SECONDS));
+        Cache::put($this->key($room), $members, now()->addSeconds($this->ttlSeconds()));
     }
 
     private function key(Room $room): string
     {
         return "presence.room.{$room->id}";
+    }
+
+    private function ttlSeconds(): int
+    {
+        return (int) config('chat.presence.ttl_seconds');
     }
 }

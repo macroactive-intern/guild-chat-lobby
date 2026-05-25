@@ -9,7 +9,10 @@ class MessageEditExpiredException extends RuntimeException
 {
     public function __construct()
     {
-        parent::__construct('Messages can only be edited for 10 minutes after creation.');
+        parent::__construct(sprintf(
+            'Messages can only be edited for %d minutes after creation.',
+            (int) config('chat.messages.edit_window_minutes'),
+        ));
     }
 
     public function render(): JsonResponse
