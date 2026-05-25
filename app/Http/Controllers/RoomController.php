@@ -62,7 +62,7 @@ class RoomController extends Controller
     {
         Gate::authorize('archive', $room);
 
-        $room->forceFill(['is_archived' => true])->save();
+        $room->update(['is_archived' => true]);
 
         event(new RoomStatusUpdated($room));
 
@@ -74,7 +74,7 @@ class RoomController extends Controller
     {
         Gate::authorize('archive', $room);
 
-        $room->forceFill(['is_archived' => false])->save();
+        $room->update(['is_archived' => false]);
 
         event(new RoomStatusUpdated($room));
 
