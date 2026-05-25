@@ -128,6 +128,7 @@ it('rejects replies whose parent message belongs to another room', function () {
             'parent_id' => $otherRoomMessage->id,
         ])
         ->assertUnprocessable()
+        ->assertJsonPath('error', 'validation_failed')
         ->assertJsonPath('errors.parent_id.0', 'The parent message must belong to the same room.');
 });
 

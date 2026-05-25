@@ -119,6 +119,7 @@ it('validates emoji reaction payloads', function () {
             'emoji' => '',
         ])
         ->assertUnprocessable()
+        ->assertJsonPath('error', 'validation_failed')
         ->assertJsonPath('errors.emoji.0', 'The emoji field is required.');
 });
 

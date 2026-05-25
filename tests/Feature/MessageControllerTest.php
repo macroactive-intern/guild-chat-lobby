@@ -67,6 +67,7 @@ it('returns validation errors from chat service for invalid message payloads', f
         ])
         ->assertUnprocessable()
         ->assertJsonPath('message', 'The body field is required.')
+        ->assertJsonPath('error', 'validation_failed')
         ->assertJsonPath('errors.body.0', 'The body field is required.');
 });
 
@@ -87,6 +88,7 @@ it('rejects soft deleted parent messages through chat service validation', funct
         ])
         ->assertUnprocessable()
         ->assertJsonPath('message', 'The selected parent id is invalid.')
+        ->assertJsonPath('error', 'validation_failed')
         ->assertJsonPath('errors.parent_id.0', 'The selected parent id is invalid.');
 });
 
@@ -113,6 +115,7 @@ it('rejects replies deeper than the configured thread depth', function () {
             'parent_id' => $parentId,
         ])
         ->assertUnprocessable()
+        ->assertJsonPath('error', 'validation_failed')
         ->assertJsonPath('errors.parent_id.0', "Replies cannot be nested more than {$maxThreadDepth} levels deep.");
 });
 
