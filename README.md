@@ -6,6 +6,7 @@ API-only Laravel 12 backend with Sanctum authentication.
 
 - Laravel 12
 - Sanctum API token authentication
+- Reverb WebSocket broadcasting
 - SQLite by default
 - MySQL supported through environment configuration
 
@@ -54,6 +55,58 @@ php artisan serve
 ```
 
 The API will be available at `http://localhost:8000`.
+
+## Broadcasting
+
+Broadcasting uses Laravel Reverb locally:
+
+```dotenv
+BROADCAST_CONNECTION=reverb
+QUEUE_CONNECTION=database
+```
+
+Run the API server, Reverb server, and queue worker in separate terminals:
+
+```bash
+php artisan serve
+php artisan reverb:start --debug
+php artisan queue:work
+```
+
+Composer script shortcuts are also available:
+
+```bash
+composer run dev
+composer run reverb
+composer run queue
+```
+
+Use this frontend environment shape in the consuming Vite app:
+
+```dotenv
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+The generated `resources/js/echo.js` shows the matching Laravel Echo client setup. Since this repository is API-only, frontend packages are not installed here; install `laravel-echo` and `pusher-js` in the frontend app that connects to this API.
+
+## Reverb Environment
+
+`REVERB_APP_ID` identifies the Reverb application configured in `config/reverb.php`.
+
+`REVERB_APP_KEY` is the public application key clients use when opening WebSocket connections.
+
+`REVERB_APP_SECRET` is the private signing secret Laravel uses when publishing and authenticating broadcast requests.
+
+`REVERB_HOST` is the hostname Laravel and clients use to reach the Reverb server.
+
+`REVERB_PORT` is the public WebSocket port. Local development uses `8080`.
+
+`REVERB_SCHEME` controls whether clients connect over `http/ws` or `https/wss`; local development uses `http`.
+
+`VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, and `VITE_REVERB_SCHEME` expose the matching Reverb connection values to a Vite-powered frontend.
 
 ## API
 
