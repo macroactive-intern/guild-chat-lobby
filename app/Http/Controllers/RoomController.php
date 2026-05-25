@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\RoomStatusUpdated;
 use App\Http\Resources\RoomResource;
 use App\Models\Guild;
 use App\Models\Room;
@@ -52,6 +53,30 @@ class RoomController extends Controller
         $room->load($this->lastMessages());
 
         return new RoomResource($room);
+    }
+
+    public function archive(Room $room): JsonResponse
+    {
+        Gate::authorize('archive', $room);
+
+        $room->forceFill(['is_archived' => true])->save();
+
+        event(new RoomStatusUpdated($room));
+
+        return (new RoomResource($room))
+            ->response();
+    }
+
+    public function unarchive(Room $room): JsonResponse
+    {
+        Gate::authorize('archive', $room);
+
+        $room->forceFill(['is_archived' => false])->save();
+
+        event(new RoomStatusUpdated($room));
+
+        return (new RoomResource($room))
+            ->response();
     }
 
     private function lastMessages(): array

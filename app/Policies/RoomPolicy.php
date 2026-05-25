@@ -16,4 +16,9 @@ class RoomPolicy
     {
         return $user->isMemberOfGuild($room->guild_id);
     }
+
+    public function archive(User $user, Room $room): bool
+    {
+        return $user->isLeaderOfGuild($room->guild_id);
+    }
 }
