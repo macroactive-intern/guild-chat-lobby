@@ -110,7 +110,10 @@ it('authorizes message owners and guild leaders through message policies', funct
         'body' => 'On my way.',
     ]);
 
-    expect($member->can('update', $memberMessage))->toBeTrue()
+    expect($member->can('react', $memberMessage))->toBeTrue()
+        ->and($leader->can('react', $memberMessage))->toBeTrue()
+        ->and($outsider->can('react', $memberMessage))->toBeFalse()
+        ->and($member->can('update', $memberMessage))->toBeTrue()
         ->and($member->can('delete', $memberMessage))->toBeTrue()
         ->and($member->can('update', $leaderMessage))->toBeFalse()
         ->and($member->can('delete', $leaderMessage))->toBeFalse()

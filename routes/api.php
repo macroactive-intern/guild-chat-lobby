@@ -40,9 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('messages/{message}')->group(function () {
         Route::post('/reactions', [MessageReactionController::class, 'store'])
-            ->middleware('can:view,message');
+            ->middleware('can:react,message');
         Route::delete('/reactions', [MessageReactionController::class, 'destroy'])
-            ->middleware('can:view,message');
+            ->middleware('can:react,message');
         Route::patch('/', [MessageController::class, 'update'])
             ->middleware('can:update,message');
         Route::delete('/', [MessageController::class, 'destroy'])

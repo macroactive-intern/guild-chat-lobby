@@ -14,7 +14,7 @@ class MessageReactionController extends Controller
 {
     public function store(Request $request, Message $message): JsonResponse
     {
-        Gate::authorize('view', $message);
+        Gate::authorize('react', $message);
 
         $validated = $request->validate([
             'emoji' => ['required', 'string', 'max:64'],
@@ -40,7 +40,7 @@ class MessageReactionController extends Controller
 
     public function destroy(Request $request, Message $message): JsonResponse
     {
-        Gate::authorize('view', $message);
+        Gate::authorize('react', $message);
 
         $validated = $request->validate([
             'emoji' => ['required', 'string', 'max:64'],
