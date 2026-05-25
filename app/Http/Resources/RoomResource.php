@@ -19,6 +19,7 @@ class RoomResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'is_archived' => $this->is_archived,
+            'messages' => MessageResource::collection($this->whenLoaded('messages')),
         ];
     }
 }
