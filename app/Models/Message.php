@@ -43,7 +43,7 @@ class Message extends Model
 
     public function replies(): HasMany
     {
-        return $this->hasMany(Message::class, 'parent_id');
+        return $this->hasMany(Message::class, 'parent_id')->withTrashed();
     }
 
     public function reads(): HasMany
