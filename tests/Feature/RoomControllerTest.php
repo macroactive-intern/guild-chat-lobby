@@ -39,11 +39,15 @@ it('lists guild rooms for members with pagination and the latest 50 messages', f
         ]);
     }
 
-    Message::create([
-        'room_id' => $secondRoom->id,
-        'user_id' => $messageUser->id,
-        'body' => 'Latest beta message',
-    ]);
+    foreach (range(1, 55) as $number) {
+        Message::create([
+            'room_id' => $secondRoom->id,
+            'user_id' => $messageUser->id,
+            'body' => "Beta message {$number}",
+            'created_at' => now()->addMinutes(1)->addSeconds($number),
+            'updated_at' => now()->addMinutes(1)->addSeconds($number),
+        ]);
+    }
 
     $response = $this->actingAs($member)
         ->getJson("/api/guilds/{$guild->id}/rooms?per_page=2")
@@ -57,6 +61,11 @@ it('lists guild rooms for members with pagination and the latest 50 messages', f
         ->and(collect($response->json('data.0.messages'))->pluck('body')->all())
         ->toContain('Message 55')
         ->not->toContain('Message 1')
+        ->and($response->json('data.1.id'))->toBe($secondRoom->id)
+        ->and($response->json('data.1.messages'))->toHaveCount(50)
+        ->and(collect($response->json('data.1.messages'))->pluck('body')->all())
+        ->toContain('Beta message 55')
+        ->not->toContain('Beta message 1')
         ->and(collect($response->json('data'))->pluck('id')->all())
         ->not->toContain($firstRoom->id);
 });

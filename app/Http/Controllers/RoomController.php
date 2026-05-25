@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Events\RoomStatusUpdated;
 use App\Http\Resources\RoomResource;
 use App\Models\Guild;
+use App\Models\Message;
 use App\Models\Room;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class RoomController extends Controller
@@ -21,9 +24,9 @@ class RoomController extends Controller
         $perPage = max(1, min($request->integer('per_page', 15), 100));
 
         $rooms = $guild->rooms()
-            ->with($this->lastMessages())
             ->latest('id')
             ->paginate($perPage);
+        $this->loadLastMessagesForRooms($rooms->getCollection());
 
         return RoomResource::collection($rooms);
     }
@@ -88,5 +91,41 @@ class RoomController extends Controller
                 ->latest('id')
                 ->limit(50),
         ];
+    }
+
+    /**
+     * @param  EloquentCollection<int, Room>  $rooms
+     */
+    private function loadLastMessagesForRooms(EloquentCollection $rooms): void
+    {
+        if ($rooms->isEmpty()) {
+            return;
+        }
+
+        $rankedMessages = Message::query()
+            ->withTrashed()
+            ->select('id')
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY room_id ORDER BY id DESC) as room_message_rank')
+            ->whereIn('room_id', $rooms->modelKeys());
+
+        $messageIds = DB::query()
+            ->fromSub($rankedMessages, 'ranked_messages')
+            ->where('room_message_rank', '<=', 50)
+            ->pluck('id');
+
+        $messages = Message::query()
+            ->withTrashed()
+            ->with(['user', 'replies.user'])
+            ->whereIn('id', $messageIds)
+            ->latest('id')
+            ->get()
+            ->groupBy('room_id');
+
+        $rooms->each(function (Room $room) use ($messages): void {
+            $room->setRelation(
+                'messages',
+                $messages->get($room->id, new EloquentCollection())->values(),
+            );
+        });
     }
 }
