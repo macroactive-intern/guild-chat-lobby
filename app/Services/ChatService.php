@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Events\MessageSent;
+use App\Exceptions\ArchivedRoomException;
+use App\Exceptions\MessageEditExpiredException;
 use App\Exceptions\TooManyMessagesException;
 use App\Models\Message;
 use App\Models\Room;
@@ -17,6 +19,7 @@ class ChatService
 {
     /**
      * @throws TooManyMessagesException
+     * @throws ArchivedRoomException
      * @throws ValidationException
      */
     public function send(User $user, Room $room, array $data): Message
@@ -40,6 +43,7 @@ class ChatService
 
     /**
      * @throws AuthorizationException
+     * @throws MessageEditExpiredException
      * @throws ValidationException
      */
     public function edit(Message $message, User $user, array $data): Message
@@ -49,7 +53,7 @@ class ChatService
         }
 
         if ($message->created_at->copy()->addMinutes(10)->isPast()) {
-            throw new AuthorizationException('Messages can only be edited for 10 minutes after creation.');
+            throw new MessageEditExpiredException();
         }
 
         $validated = Validator::make($data, [
@@ -83,19 +87,20 @@ class ChatService
 
     /**
      * @throws ValidationException
+     * @throws ArchivedRoomException
      */
     private function validateMessageData(Room $room, array $data): array
     {
+        if ($room->is_archived) {
+            throw new ArchivedRoomException();
+        }
+
         $validator = Validator::make($data, [
             'body' => ['required', 'string', 'max:5000'],
             'parent_id' => ['nullable', 'integer', 'exists:messages,id'],
         ]);
 
         $validator->after(function ($validator) use ($room, $data): void {
-            if ($room->is_archived) {
-                $validator->errors()->add('room_id', 'Archived rooms cannot receive new messages.');
-            }
-
             if (! array_key_exists('parent_id', $data) || $data['parent_id'] === null) {
                 return;
             }

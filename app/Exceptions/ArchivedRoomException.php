@@ -5,18 +5,18 @@ namespace App\Exceptions;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
-class TooManyMessagesException extends RuntimeException
+class ArchivedRoomException extends RuntimeException
 {
     public function __construct()
     {
-        parent::__construct('You are sending messages too quickly.');
+        parent::__construct('Archived rooms cannot receive new messages.');
     }
 
     public function render(): JsonResponse
     {
         return response()->json([
             'message' => $this->getMessage(),
-            'error' => 'too_many_messages',
-        ], 429);
+            'error' => 'archived_room',
+        ], 409);
     }
 }

@@ -5,18 +5,18 @@ namespace App\Exceptions;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
-class TooManyMessagesException extends RuntimeException
+class MessageEditExpiredException extends RuntimeException
 {
     public function __construct()
     {
-        parent::__construct('You are sending messages too quickly.');
+        parent::__construct('Messages can only be edited for 10 minutes after creation.');
     }
 
     public function render(): JsonResponse
     {
         return response()->json([
             'message' => $this->getMessage(),
-            'error' => 'too_many_messages',
-        ], 429);
+            'error' => 'message_edit_expired',
+        ], 403);
     }
 }

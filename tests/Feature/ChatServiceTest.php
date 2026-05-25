@@ -1,6 +1,8 @@
 <?php
 
 use App\Events\MessageSent;
+use App\Exceptions\ArchivedRoomException;
+use App\Exceptions\MessageEditExpiredException;
 use App\Exceptions\TooManyMessagesException;
 use App\Http\Resources\MessageResource;
 use App\Models\Guild;
@@ -12,6 +14,7 @@ use App\Services\ChatService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
@@ -100,7 +103,7 @@ it('rejects sending messages to archived rooms', function () {
     app(ChatService::class)->send($user, $room, [
         'body' => 'Can anyone hear me?',
     ]);
-})->throws(ValidationException::class);
+})->throws(ArchivedRoomException::class);
 
 it('edits author messages within ten minutes and sets edited timestamp', function () {
     [$user, $room] = chatServiceRoomWithUser();
@@ -151,7 +154,37 @@ it('rejects edits after ten minutes', function () {
     app(ChatService::class)->edit($message, $user, [
         'body' => 'Too late.',
     ]);
-})->throws(AuthorizationException::class);
+})->throws(MessageEditExpiredException::class);
+
+it('returns API friendly JSON for chat domain exceptions', function () {
+    Route::get('/test/exceptions/too-many-messages', fn () => throw new TooManyMessagesException())
+        ->middleware('api');
+    Route::get('/test/exceptions/message-edit-expired', fn () => throw new MessageEditExpiredException())
+        ->middleware('api');
+    Route::get('/test/exceptions/archived-room', fn () => throw new ArchivedRoomException())
+        ->middleware('api');
+
+    $this->getJson('/test/exceptions/too-many-messages')
+        ->assertTooManyRequests()
+        ->assertExactJson([
+            'message' => 'You are sending messages too quickly.',
+            'error' => 'too_many_messages',
+        ]);
+
+    $this->getJson('/test/exceptions/message-edit-expired')
+        ->assertForbidden()
+        ->assertExactJson([
+            'message' => 'Messages can only be edited for 10 minutes after creation.',
+            'error' => 'message_edit_expired',
+        ]);
+
+    $this->getJson('/test/exceptions/archived-room')
+        ->assertConflict()
+        ->assertExactJson([
+            'message' => 'Archived rooms cannot receive new messages.',
+            'error' => 'archived_room',
+        ]);
+});
 
 it('soft deletes messages by author and masks resource output', function () {
     [$user, $room] = chatServiceRoomWithUser();
