@@ -139,3 +139,18 @@ it('rejects message updates outside the edit window through message policy', fun
     expect($member->can('update', $expiredMessage))->toBeFalse()
         ->and($member->can('delete', $expiredMessage))->toBeTrue();
 });
+
+it('denies orphaned messages through message policies without throwing', function () {
+    [, $member] = guildWithUsers();
+    $message = Message::make([
+        'id' => 999,
+        'room_id' => 999,
+        'user_id' => $member->id,
+        'body' => 'Orphaned message.',
+    ]);
+    $message->exists = true;
+
+    expect($member->can('react', $message))->toBeFalse()
+        ->and($member->can('update', $message))->toBeFalse()
+        ->and($member->can('delete', $message))->toBeFalse();
+});

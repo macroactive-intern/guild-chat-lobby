@@ -39,7 +39,7 @@ class MessagePolicy
     {
         $message->loadMissing('room');
 
-        return $message->room->guild_id;
+        return $message->room?->guild_id;
     }
 
     private function isWithinEditWindow(Message $message): bool
