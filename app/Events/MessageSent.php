@@ -47,6 +47,8 @@ class MessageSent implements ShouldBroadcast
                 'name' => $this->message->user->name,
             ],
             'parent_id' => $this->message->parent_id,
+            'edited_at' => $this->message->edited_at,
+            'is_deleted' => $this->message->trashed(),
             'created_at' => $this->message->created_at,
         ];
     }

@@ -26,7 +26,7 @@ it('broadcasts the expected message payload', function () {
 
     $payload = (new MessageSent($message))->broadcastWith();
 
-    expect($payload)->toHaveKeys(['id', 'body', 'user', 'parent_id', 'created_at'])
+    expect($payload)->toHaveKeys(['id', 'body', 'user', 'parent_id', 'edited_at', 'is_deleted', 'created_at'])
         ->and($payload['id'])->toBe($message->id)
         ->and($payload['body'])->toBe('Child message.')
         ->and($payload['user'])->toBe([
@@ -34,6 +34,8 @@ it('broadcasts the expected message payload', function () {
             'name' => $user->name,
         ])
         ->and($payload['parent_id'])->toBe($message->parent_id)
+        ->and($payload['edited_at'])->toBeNull()
+        ->and($payload['is_deleted'])->toBeFalse()
         ->and($payload['created_at'])->not->toBeNull();
 });
 
@@ -48,6 +50,8 @@ it('never exposes original content for deleted messages', function () {
     $payload = (new MessageSent($message))->broadcastWith();
 
     expect($payload['body'])->toBe('[message deleted]')
+        ->and($payload['is_deleted'])->toBeTrue()
+        ->and($payload)->toHaveKeys(['edited_at', 'is_deleted'])
         ->and(json_encode($payload))->not->toContain('Visible message.');
 });
 
