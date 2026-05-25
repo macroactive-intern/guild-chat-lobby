@@ -28,7 +28,7 @@ class StoreMessageRequest extends FormRequest
     {
         return [
             'body' => ['required', 'string', 'max:5000'],
-            'parent_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:messages,id,deleted_at,NULL'],
         ];
     }
 

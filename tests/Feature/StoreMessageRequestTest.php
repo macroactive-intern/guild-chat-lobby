@@ -57,6 +57,19 @@ it('rejects parent messages from another room', function () {
         ->assertJsonPath('errors.parent_id.0', 'The parent message must belong to the same room.');
 });
 
+it('rejects soft deleted parent messages', function () {
+    [$room, $parent] = roomWithParentMessage();
+    $parent->delete();
+
+    $this->postJson("/test/rooms/{$room->id}/messages", [
+        'body' => 'Replying to deleted messages should fail.',
+        'parent_id' => $parent->id,
+    ])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'The given data was invalid.')
+        ->assertJsonPath('errors.parent_id.0', 'The selected parent id is invalid.');
+});
+
 it('rejects new messages in archived rooms', function () {
     [$room] = roomWithParentMessage(['is_archived' => true]);
 
