@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessageReactionController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomHeartbeatController;
 use Illuminate\Http\Request;
@@ -34,6 +35,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('messages/{message}')->group(function () {
+        Route::post('/reactions', [MessageReactionController::class, 'store'])
+            ->middleware('can:view,message');
+        Route::delete('/reactions', [MessageReactionController::class, 'destroy'])
+            ->middleware('can:view,message');
         Route::patch('/', [MessageController::class, 'update'])
             ->middleware('can:update,message');
         Route::delete('/', [MessageController::class, 'destroy'])

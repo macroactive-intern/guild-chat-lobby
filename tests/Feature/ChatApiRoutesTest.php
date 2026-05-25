@@ -26,4 +26,6 @@ it('registers the chat API routes with sanctum and policy middleware', function 
     ['POST', 'api/rooms/{room}/read', 'can:view,room'],
     ['POST', 'api/rooms/{room}/typing', 'can:view,room'],
     ['POST', 'api/rooms/{room}/heartbeat', 'can:view,room'],
+    ['POST', 'api/messages/{message}/reactions', 'can:view,message'],
+    ['DELETE', 'api/messages/{message}/reactions', 'can:view,message'],
 ]);

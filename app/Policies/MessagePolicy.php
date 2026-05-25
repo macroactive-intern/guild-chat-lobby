@@ -7,6 +7,11 @@ use App\Models\User;
 
 class MessagePolicy
 {
+    public function view(User $user, Message $message): bool
+    {
+        return $user->isMemberOfGuild($this->messageGuildId($message));
+    }
+
     public function update(User $user, Message $message): bool
     {
         return $message->user_id === $user->id
