@@ -217,6 +217,25 @@ it('broadcasts typing indicators without persisting anything', function () {
         ->and(MessageRead::count())->toBe(0);
 });
 
+it('rate limits typing indicators per user and room', function () {
+    Event::fake([UserTyping::class]);
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/typing")
+        ->assertAccepted();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/typing")
+        ->assertTooManyRequests()
+        ->assertExactJson([
+            'message' => 'You are sending typing indicators too quickly.',
+            'error' => 'too_many_typing_events',
+        ]);
+
+    Event::assertDispatched(UserTyping::class, 1);
+});
+
 it('rejects message endpoints for users outside the guild', function () {
     $outsider = User::factory()->create();
     [, $room] = messageControllerMemberRoom();

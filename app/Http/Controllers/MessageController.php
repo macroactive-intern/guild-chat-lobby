@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class MessageController extends Controller
@@ -99,6 +100,15 @@ class MessageController extends Controller
     public function typing(Request $request, Room $room): JsonResponse
     {
         Gate::authorize('view', $room);
+
+        $lock = Cache::lock("typing-rate.{$request->user()->id}.{$room->id}", 1);
+
+        if (! $lock->get()) {
+            return response()->json([
+                'message' => 'You are sending typing indicators too quickly.',
+                'error' => 'too_many_typing_events',
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+        }
 
         broadcast(new UserTyping($request->user(), $room))->toOthers();
 

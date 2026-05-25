@@ -183,6 +183,21 @@ it('broadcasts typing events without creating database rows', function () {
         ->and(MessageRead::count())->toBe(0);
 });
 
+it('rate limits typing events to protect broadcast capacity', function () {
+    [$user, $room] = realtimeChatMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/typing")
+        ->assertAccepted();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/typing")
+        ->assertTooManyRequests()
+        ->assertJsonPath('error', 'too_many_typing_events');
+
+    Event::assertDispatched(UserTyping::class, 1);
+});
+
 it('upserts read receipts for the latest room message', function () {
     [$user, $room] = realtimeChatMemberRoom();
     $author = User::factory()->create();
