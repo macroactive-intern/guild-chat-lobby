@@ -1,14 +1,18 @@
 <?php
 
+use App\Events\PresenceUpdated;
 use App\Models\Guild;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\PresenceService;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
     Cache::flush();
+    Event::fake([PresenceUpdated::class]);
     Carbon::setTestNow(now());
 });
 
@@ -65,6 +69,72 @@ it('refreshes heartbeat timestamps when a user is marked online again', function
 
     expect($secondSeenAt)->toBeGreaterThan($firstSeenAt)
         ->and($service->onlineMembers($room))->toHaveCount(1);
+    Event::assertDispatched(PresenceUpdated::class, 1);
+});
+
+it('broadcasts presence updates when users appear and disappear', function () {
+    [$room, $user] = presenceServiceRoomAndUser();
+    $service = app(PresenceService::class);
+
+    $service->markOnline($room, $user);
+
+    Event::assertDispatched(PresenceUpdated::class, fn (PresenceUpdated $event): bool => $event->room->is($room)
+        && $event->user->is($user)
+        && $event->status === 'online'
+        && $event->onlineMembers === [
+            [
+                'id' => $user->id,
+                'name' => $user->name,
+            ],
+        ]);
+
+    $service->markOffline($room, $user);
+
+    Event::assertDispatched(PresenceUpdated::class, fn (PresenceUpdated $event): bool => $event->room->is($room)
+        && $event->user->is($user)
+        && $event->status === 'offline'
+        && $event->onlineMembers === []);
+    Event::assertDispatched(PresenceUpdated::class, 2);
+});
+
+it('does not broadcast when marking an already offline user offline', function () {
+    [$room, $user] = presenceServiceRoomAndUser();
+
+    app(PresenceService::class)->markOffline($room, $user);
+
+    Event::assertNotDispatched(PresenceUpdated::class);
+});
+
+it('broadcasts presence updated events to the private room channel', function () {
+    [$room, $user] = presenceServiceRoomAndUser();
+    $event = new PresenceUpdated($room, $user, 'online', [
+        [
+            'id' => $user->id,
+            'name' => $user->name,
+        ],
+    ]);
+    $payload = $event->broadcastWith();
+
+    expect($event)->toBeInstanceOf(ShouldBroadcast::class)
+        ->and($event->broadcastOn()->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
+        ->and($event->broadcastAs())->toBe('presence.updated')
+        ->and($event->tries)->toBe(3)
+        ->and($event->backoff)->toBe(5)
+        ->and($event->maxExceptions)->toBe(3)
+        ->and($payload)->toBe([
+            'room_id' => $room->id,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ],
+            'status' => 'online',
+            'online_members' => [
+                [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ],
+            ],
+        ]);
 });
 
 it('filters stale members after the ttl window', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\PresenceUpdated;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -14,6 +15,7 @@ class PresenceService
     public function markOnline(Room $room, User $user): void
     {
         $members = $this->freshMembers($room);
+        $wasOnline = array_key_exists($user->id, $members);
 
         $members[$user->id] = [
             'id' => $user->id,
@@ -22,21 +24,34 @@ class PresenceService
         ];
 
         $this->putMembers($room, $members);
+
+        if (! $wasOnline) {
+            event(new PresenceUpdated($room, $user, 'online', $this->publicMembers($members)->all()));
+        }
     }
 
     public function markOffline(Room $room, User $user): void
     {
         $members = $this->freshMembers($room);
+        $wasOnline = array_key_exists($user->id, $members);
 
         unset($members[$user->id]);
 
         if ($members === []) {
             Cache::forget($this->key($room));
 
+            if ($wasOnline) {
+                event(new PresenceUpdated($room, $user, 'offline', []));
+            }
+
             return;
         }
 
         $this->putMembers($room, $members);
+
+        if ($wasOnline) {
+            event(new PresenceUpdated($room, $user, 'offline', $this->publicMembers($members)->all()));
+        }
     }
 
     public function onlineMembers(Room $room): Collection
@@ -51,6 +66,11 @@ class PresenceService
 
         $this->putMembers($room, $members);
 
+        return $this->publicMembers($members);
+    }
+
+    private function publicMembers(array $members): Collection
+    {
         return collect($members)
             ->map(fn (array $member): array => [
                 'id' => $member['id'],

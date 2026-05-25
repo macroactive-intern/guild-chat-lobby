@@ -26,6 +26,9 @@ const roomChannel = subscribeToRoomPresence({
     onMessageDeleted: (message) => {
         console.log('message.deleted:', message);
     },
+    onPresenceUpdated: (presence) => {
+        console.log('presence.updated:', presence);
+    },
     onReactionAdded: (reaction) => {
         console.log('reaction.added:', reaction);
     },
@@ -41,6 +44,7 @@ export function stopListening(guildId = 1, roomId = 1) {
     roomChannel.stopListening('.message.sent');
     roomChannel.stopListening('.message.edited');
     roomChannel.stopListening('.message.deleted');
+    roomChannel.stopListening('.presence.updated');
     roomChannel.stopListening('.reaction.added');
     roomChannel.stopListening('.room.status.updated');
     roomChannel.stopListening('.user.typing');

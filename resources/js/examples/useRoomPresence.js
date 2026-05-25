@@ -17,6 +17,7 @@ export function useRoomPresence({ guildId, roomId, token }) {
         channel.stopListening('.message.sent');
         channel.stopListening('.message.edited');
         channel.stopListening('.message.deleted');
+        channel.stopListening('.presence.updated');
         channel.stopListening('.reaction.added');
         channel.stopListening('.room.status.updated');
         channel.stopListening('.user.typing');
@@ -55,6 +56,9 @@ export function useRoomPresence({ guildId, roomId, token }) {
                     messages.value = messages.value.map((currentMessage) =>
                         currentMessage.id === message.id ? { ...currentMessage, ...message, is_deleted: true } : currentMessage,
                     );
+                },
+                onPresenceUpdated: (presence) => {
+                    onlineUsers.value = presence.online_members;
                 },
                 onReactionAdded: (reaction) => {
                     messages.value = messages.value.map((currentMessage) =>

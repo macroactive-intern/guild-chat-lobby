@@ -20,4 +20,15 @@ class RoomHeartbeatController extends Controller
             'message' => 'Presence heartbeat recorded.',
         ]);
     }
+
+    public function destroy(Request $request, Room $room, PresenceService $presence): JsonResponse
+    {
+        Gate::authorize('view', $room);
+
+        $presence->markOffline($room, $request->user());
+
+        return response()->json([
+            'message' => 'Presence heartbeat cleared.',
+        ]);
+    }
 }

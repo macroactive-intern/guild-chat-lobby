@@ -3,6 +3,7 @@
 use App\Events\MessageDeleted;
 use App\Events\MessageEdited;
 use App\Events\MessageSent;
+use App\Events\PresenceUpdated;
 use App\Events\ReactionAdded;
 use App\Events\RoomStatusUpdated;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,10 @@ it('configures queued broadcast events with retry metadata', function () {
         ->tries->toBe(3)
         ->backoff->toBe(5)
         ->maxExceptions->toBe(3)
+        ->and(new PresenceUpdated(broadcastFailureRoom(), broadcastFailureUser(), 'online', []))
+        ->tries->toBe(3)
+        ->backoff->toBe(5)
+        ->maxExceptions->toBe(3)
         ->and(new ReactionAdded(broadcastFailureReaction()))
         ->tries->toBe(3)
         ->backoff->toBe(5)
@@ -125,4 +130,9 @@ function broadcastFailureRoom(): App\Models\Room
         'guild_id' => $guild->id,
         'name' => 'general',
     ]);
+}
+
+function broadcastFailureUser(): App\Models\User
+{
+    return App\Models\User::factory()->create();
 }

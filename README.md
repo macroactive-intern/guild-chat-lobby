@@ -126,6 +126,7 @@ The room presence channel listens for:
 - `message.sent`
 - `message.edited`
 - `message.deleted`
+- `presence.updated`
 - `reaction.added`
 - `room.status.updated`
 - `user.typing`
@@ -147,11 +148,14 @@ subscribeToRoomPresence({
     onMessageSent: (message) => console.log('message.sent', message),
     onMessageEdited: (message) => console.log('message.edited', message),
     onMessageDeleted: (message) => console.log('message.deleted', message),
+    onPresenceUpdated: (presence) => console.log('presence.updated', presence),
     onReactionAdded: (reaction) => console.log('reaction.added', reaction),
     onRoomStatusUpdated: (room) => console.log('room.status.updated', room),
     onUserTyping: (typing) => console.log('user.typing', typing),
 });
 ```
+
+Presence cache updates are pushed with `presence.updated` when a member first heartbeats online or explicitly clears their heartbeat with `DELETE /api/rooms/{room}/heartbeat`. The 30-second TTL remains a fallback for abandoned sessions.
 
 Vue integration example:
 

@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('can:view,room');
         Route::post('/heartbeat', RoomHeartbeatController::class)
             ->middleware('can:view,room');
+        Route::delete('/heartbeat', [RoomHeartbeatController::class, 'destroy'])
+            ->middleware('can:view,room');
         Route::patch('/archive', [RoomController::class, 'archive'])
             ->middleware('can:archive,room');
         Route::patch('/unarchive', [RoomController::class, 'unarchive'])

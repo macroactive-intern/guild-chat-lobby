@@ -36,6 +36,7 @@ export function subscribeToRoomPresence({
     onMessageDeleted = () => {},
     onMessageEdited = () => {},
     onMessageSent = () => {},
+    onPresenceUpdated = () => {},
     onReactionAdded = () => {},
     onRoomStatusUpdated = () => {},
     onUserTyping = () => {},
@@ -48,6 +49,7 @@ export function subscribeToRoomPresence({
         .listen('.message.sent', onMessageSent)
         .listen('.message.edited', onMessageEdited)
         .listen('.message.deleted', onMessageDeleted)
+        .listen('.presence.updated', onPresenceUpdated)
         .listen('.reaction.added', onReactionAdded)
         .listen('.room.status.updated', onRoomStatusUpdated)
         .listen('.user.typing', onUserTyping);
