@@ -1,19 +1,5 @@
 <?php
 
-namespace Tests\Feature;
-
-// use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-
-class ExampleTest extends TestCase
-{
-    /**
-     * A basic test example.
-     */
-    public function test_the_health_endpoint_returns_a_successful_response(): void
-    {
-        $response = $this->get('/up');
-
-        $response->assertStatus(200);
-    }
-}
+it('returns a successful response from the health endpoint', function () {
+    $this->get('/up')->assertOk();
+});
