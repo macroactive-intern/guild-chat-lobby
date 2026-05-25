@@ -89,6 +89,32 @@ it('rejects soft deleted parent messages through chat service validation', funct
         ->assertJsonPath('errors.parent_id.0', 'The selected parent id is invalid.');
 });
 
+it('rejects replies deeper than the configured thread depth', function () {
+    Event::fake([MessageSent::class]);
+    [$user, $room] = messageControllerMemberRoom();
+    $parentId = null;
+    $maxThreadDepth = (int) config('chat.messages.max_thread_depth');
+
+    foreach (range(1, $maxThreadDepth) as $number) {
+        $message = Message::create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'body' => "Thread level {$number}.",
+            'parent_id' => $parentId,
+        ]);
+
+        $parentId = $message->id;
+    }
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => 'Too deep.',
+            'parent_id' => $parentId,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_id.0', "Replies cannot be nested more than {$maxThreadDepth} levels deep.");
+});
+
 it('edits messages through the chat service for authors', function () {
     [$user, $room] = messageControllerMemberRoom();
     $message = Message::create([

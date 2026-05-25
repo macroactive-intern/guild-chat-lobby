@@ -4,6 +4,7 @@ return [
     'messages' => [
         'edit_window_minutes' => 10,
         'index_page_size' => 20,
+        'max_thread_depth' => 3,
     ],
 
     'presence' => [

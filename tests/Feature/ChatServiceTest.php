@@ -125,6 +125,29 @@ it('rejects soft deleted parent messages', function () {
     ]);
 })->throws(ValidationException::class);
 
+it('rejects replies deeper than the configured thread depth', function () {
+    Event::fake([MessageSent::class]);
+
+    [$user, $room] = chatServiceRoomWithUser();
+    $parentId = null;
+
+    foreach (range(1, (int) config('chat.messages.max_thread_depth')) as $number) {
+        $message = Message::create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'body' => "Thread level {$number}.",
+            'parent_id' => $parentId,
+        ]);
+
+        $parentId = $message->id;
+    }
+
+    app(ChatService::class)->send($user, $room, [
+        'body' => 'Too deep.',
+        'parent_id' => $parentId,
+    ]);
+})->throws(ValidationException::class);
+
 it('rejects sending messages to archived rooms', function () {
     Event::fake([MessageSent::class]);
 

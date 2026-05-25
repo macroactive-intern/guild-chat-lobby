@@ -113,10 +113,50 @@ class ChatService
 
             if (! $parentBelongsToRoom) {
                 $validator->errors()->add('parent_id', 'The parent message must belong to the same room.');
+
+                return;
+            }
+
+            $parent = Message::query()
+                ->select(['id', 'parent_id'])
+                ->whereKey($data['parent_id'])
+                ->firstOrFail();
+
+            if ($this->messageDepth($parent) >= (int) config('chat.messages.max_thread_depth')) {
+                $validator->errors()->add(
+                    'parent_id',
+                    sprintf(
+                        'Replies cannot be nested more than %d levels deep.',
+                        (int) config('chat.messages.max_thread_depth'),
+                    ),
+                );
             }
         });
 
         return $validator->validate();
+    }
+
+    private function messageDepth(Message $message): int
+    {
+        $depth = 1;
+        $seenMessageIds = [$message->id => true];
+        $parentId = $message->parent_id;
+        $maxDepth = (int) config('chat.messages.max_thread_depth');
+
+        while ($parentId !== null && $depth <= $maxDepth) {
+            if (isset($seenMessageIds[$parentId])) {
+                return $maxDepth;
+            }
+
+            $seenMessageIds[$parentId] = true;
+            $depth++;
+
+            $parentId = Message::query()
+                ->whereKey($parentId)
+                ->value('parent_id');
+        }
+
+        return $depth;
     }
 
     /**
