@@ -1,0 +1,240 @@
+<?php
+
+use App\Events\MessageSent;
+use App\Events\UserTyping;
+use App\Models\Guild;
+use App\Models\GuildMember;
+use App\Models\Message;
+use App\Models\MessageRead;
+use App\Models\Room;
+use App\Models\User;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
+
+beforeEach(function () {
+    Cache::flush();
+});
+
+it('sends room messages through the chat service', function () {
+    Event::fake([MessageSent::class]);
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => 'Raid starts now.',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.body', 'Raid starts now.')
+        ->assertJsonPath('data.user.id', $user->id);
+
+    $this->assertDatabaseHas('messages', [
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Raid starts now.',
+    ]);
+    Event::assertDispatched(MessageSent::class);
+});
+
+it('returns 429 when chat service rate limiting rejects spam', function () {
+    Event::fake([MessageSent::class]);
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => 'First.',
+        ])
+        ->assertCreated();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => 'Second.',
+        ])
+        ->assertTooManyRequests()
+        ->assertExactJson([
+            'message' => 'You are sending messages too quickly.',
+            'error' => 'too_many_messages',
+        ]);
+});
+
+it('edits messages through the chat service for authors', function () {
+    [$user, $room] = messageControllerMemberRoom();
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Before.',
+        'created_at' => now()->subMinutes(5),
+        'updated_at' => now()->subMinutes(5),
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/messages/{$message->id}", [
+            'body' => 'After.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.body', 'After.');
+
+    expect($message->fresh()->edited_at)->not->toBeNull();
+});
+
+it('deletes messages through the chat service and masks the response body', function () {
+    [$user, $room] = messageControllerMemberRoom();
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Secret.',
+    ]);
+
+    $this->actingAs($user)
+        ->deleteJson("/api/messages/{$message->id}")
+        ->assertOk()
+        ->assertJsonPath('data.body', '[message deleted]');
+
+    $this->assertSoftDeleted('messages', [
+        'id' => $message->id,
+    ]);
+});
+
+it('searches room messages from the last 30 days and paginates 20 per page', function () {
+    [$user, $room] = messageControllerMemberRoom();
+    $author = User::factory()->create(['name' => 'Scout']);
+    [, $otherRoom] = messageControllerMemberRoom();
+
+    foreach (range(1, 21) as $number) {
+        $message = Message::create([
+            'room_id' => $room->id,
+            'user_id' => $author->id,
+            'body' => "raid search {$number}",
+        ]);
+        $message->forceFill([
+            'created_at' => now()->subDays(2)->addSeconds($number),
+            'updated_at' => now()->subDays(2)->addSeconds($number),
+        ])->save();
+    }
+
+    $oldMessage = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $author->id,
+        'body' => 'raid search too old',
+    ]);
+    $oldMessage->forceFill([
+        'created_at' => now()->subDays(31),
+        'updated_at' => now()->subDays(31),
+    ])->save();
+    Message::create([
+        'room_id' => $room->id,
+        'user_id' => $author->id,
+        'body' => 'different topic',
+    ]);
+    Message::create([
+        'room_id' => $otherRoom->id,
+        'user_id' => $author->id,
+        'body' => 'raid search other room',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->getJson("/api/rooms/{$room->id}/messages?search=raid")
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 20)
+        ->assertJsonPath('meta.total', 21);
+
+    expect($response->json('data'))->toHaveCount(20)
+        ->and(collect($response->json('data'))->pluck('body')->all())
+        ->toContain('raid search 21')
+        ->not->toContain('raid search too old')
+        ->not->toContain('different topic')
+        ->not->toContain('raid search other room');
+});
+
+it('marks room messages as read for authenticated guild members', function () {
+    [$user, $room] = messageControllerMemberRoom();
+    $author = User::factory()->create();
+    $messages = collect(range(1, 3))->map(fn (int $number) => Message::create([
+        'room_id' => $room->id,
+        'user_id' => $author->id,
+        'body' => "Message {$number}",
+    ]));
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/read")
+        ->assertOk()
+        ->assertJsonPath('messages_marked_read', 3);
+
+    foreach ($messages as $message) {
+        $this->assertDatabaseHas('message_reads', [
+            'message_id' => $message->id,
+            'user_id' => $user->id,
+        ]);
+    }
+});
+
+it('updates existing room read receipts instead of duplicating them', function () {
+    [$user, $room] = messageControllerMemberRoom();
+    $author = User::factory()->create();
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $author->id,
+        'body' => 'Message.',
+    ]);
+    MessageRead::create([
+        'message_id' => $message->id,
+        'user_id' => $user->id,
+        'read_at' => now()->subHour(),
+    ]);
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/read")
+        ->assertOk();
+
+    expect(MessageRead::where('message_id', $message->id)
+        ->where('user_id', $user->id)
+        ->count())->toBe(1);
+});
+
+it('broadcasts typing indicators without persisting anything', function () {
+    Event::fake([UserTyping::class]);
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/typing")
+        ->assertAccepted();
+
+    Event::assertDispatched(UserTyping::class, fn (UserTyping $event) => $event->room->is($room)
+        && $event->user->is($user));
+    expect(Message::count())->toBe(0)
+        ->and(MessageRead::count())->toBe(0);
+});
+
+it('rejects message endpoints for users outside the guild', function () {
+    $outsider = User::factory()->create();
+    [, $room] = messageControllerMemberRoom();
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => User::factory()->create()->id,
+        'body' => 'Protected.',
+    ]);
+
+    $this->actingAs($outsider)->getJson("/api/rooms/{$room->id}/messages")->assertForbidden();
+    $this->actingAs($outsider)->postJson("/api/rooms/{$room->id}/messages", ['body' => 'Nope.'])->assertForbidden();
+    $this->actingAs($outsider)->postJson("/api/rooms/{$room->id}/read")->assertForbidden();
+    $this->actingAs($outsider)->postJson("/api/rooms/{$room->id}/typing")->assertForbidden();
+    $this->actingAs($outsider)->patchJson("/api/messages/{$message->id}", ['body' => 'Nope.'])->assertForbidden();
+    $this->actingAs($outsider)->deleteJson("/api/messages/{$message->id}")->assertForbidden();
+});
+
+function messageControllerMemberRoom(bool $leader = false): array
+{
+    $user = User::factory()->create(['name' => 'Nate']);
+    $guild = Guild::create(['name' => 'Raid Guild']);
+    $room = Room::create([
+        'guild_id' => $guild->id,
+        'name' => 'general',
+    ]);
+
+    GuildMember::create([
+        'guild_id' => $guild->id,
+        'user_id' => $user->id,
+        'is_leader' => $leader,
+    ]);
+
+    return [$user, $room, $guild];
+}
