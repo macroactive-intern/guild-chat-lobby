@@ -10,7 +10,15 @@ class GuildMember extends Model
     protected $fillable = [
         'guild_id',
         'user_id',
+        'is_leader',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_leader' => 'boolean',
+        ];
+    }
 
     public function guild(): BelongsTo
     {
