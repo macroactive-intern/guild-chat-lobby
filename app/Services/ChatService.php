@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Exceptions\ArchivedRoomException;
 use App\Exceptions\MessageEditExpiredException;
@@ -60,14 +62,22 @@ class ChatService
             'edited_at' => now(),
         ])->save();
 
-        return $message->load(['room', 'user', 'replies.user']);
+        $message->load(['room', 'user', 'replies.user']);
+
+        event(new MessageEdited($message));
+
+        return $message;
     }
 
     public function delete(Message $message, User $user): Message
     {
         $message->delete();
 
-        return $message->load(['room', 'user', 'replies.user']);
+        $message->load(['room', 'user', 'replies.user']);
+
+        event(new MessageDeleted($message));
+
+        return $message;
     }
 
     /**

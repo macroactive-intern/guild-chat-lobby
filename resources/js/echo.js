@@ -33,6 +33,8 @@ export function subscribeToRoomPresence({
     onHere = () => {},
     onJoining = () => {},
     onLeaving = () => {},
+    onMessageDeleted = () => {},
+    onMessageEdited = () => {},
     onMessageSent = () => {},
     onUserTyping = () => {},
 }) {
@@ -42,6 +44,8 @@ export function subscribeToRoomPresence({
         .joining(onJoining)
         .leaving(onLeaving)
         .listen('MessageSent', onMessageSent)
+        .listen('.message.edited', onMessageEdited)
+        .listen('.message.deleted', onMessageDeleted)
         .listen('.UserTyping', onUserTyping);
 }
 

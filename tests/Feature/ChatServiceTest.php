@@ -1,5 +1,7 @@
 <?php
 
+use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Exceptions\ArchivedRoomException;
 use App\Exceptions\MessageEditExpiredException;
@@ -105,6 +107,8 @@ it('rejects sending messages to archived rooms', function () {
 })->throws(ArchivedRoomException::class);
 
 it('edits author messages within ten minutes and sets edited timestamp', function () {
+    Event::fake([MessageEdited::class]);
+
     [$user, $room] = chatServiceRoomWithUser();
     $message = Message::create([
         'room_id' => $room->id,
@@ -122,6 +126,8 @@ it('edits author messages within ten minutes and sets edited timestamp', functio
 
     expect($edited->body)->toBe('After.')
         ->and($edited->edited_at)->not->toBeNull();
+
+    Event::assertDispatched(MessageEdited::class, fn (MessageEdited $event) => $event->message->is($edited));
 });
 
 it('rejects edits after ten minutes', function () {
@@ -172,6 +178,8 @@ it('returns API friendly JSON for chat domain exceptions', function () {
 });
 
 it('soft deletes messages by author and masks resource output', function () {
+    Event::fake([MessageDeleted::class]);
+
     [$user, $room] = chatServiceRoomWithUser();
     $message = Message::create([
         'room_id' => $room->id,
@@ -184,6 +192,8 @@ it('soft deletes messages by author and masks resource output', function () {
 
     expect($deleted->trashed())->toBeTrue()
         ->and($payload['body'])->toBe('[message deleted]');
+
+    Event::assertDispatched(MessageDeleted::class, fn (MessageDeleted $event) => $event->message->is($deleted));
 });
 
 it('soft deletes any guild message by leader', function () {

@@ -15,6 +15,8 @@ export function useRoomPresence({ guildId, roomId, token }) {
         }
 
         channel.stopListening('MessageSent');
+        channel.stopListening('.message.edited');
+        channel.stopListening('.message.deleted');
         channel.stopListening('.UserTyping');
         echo.leave(roomPresenceChannelName(guildId.value, roomId.value));
         channel = null;
@@ -41,6 +43,16 @@ export function useRoomPresence({ guildId, roomId, token }) {
                 },
                 onMessageSent: (message) => {
                     messages.value = [message, ...messages.value];
+                },
+                onMessageEdited: (message) => {
+                    messages.value = messages.value.map((currentMessage) =>
+                        currentMessage.id === message.id ? { ...currentMessage, ...message } : currentMessage,
+                    );
+                },
+                onMessageDeleted: (message) => {
+                    messages.value = messages.value.map((currentMessage) =>
+                        currentMessage.id === message.id ? { ...currentMessage, ...message, is_deleted: true } : currentMessage,
+                    );
                 },
                 onUserTyping: (typing) => {
                     typingUsers.value.set(typing.user_id, typing);

@@ -1,5 +1,7 @@
 <?php
 
+use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Events\ReactionAdded;
 use App\Events\RoomStatusUpdated;
@@ -60,6 +62,14 @@ it('configures queued broadcast events with retry metadata', function () {
         ->tries->toBe(3)
         ->backoff->toBe(5)
         ->maxExceptions->toBe(3)
+        ->and(new MessageEdited(broadcastFailureMessage()))
+        ->tries->toBe(3)
+        ->backoff->toBe(5)
+        ->maxExceptions->toBe(3)
+        ->and(new MessageDeleted(broadcastFailureDeletedMessage()))
+        ->tries->toBe(3)
+        ->backoff->toBe(5)
+        ->maxExceptions->toBe(3)
         ->and(new ReactionAdded(broadcastFailureReaction()))
         ->tries->toBe(3)
         ->backoff->toBe(5)
@@ -84,6 +94,16 @@ function broadcastFailureMessage(): App\Models\Message
         'user_id' => $user->id,
         'body' => 'Retry me.',
     ]);
+}
+
+function broadcastFailureDeletedMessage(): App\Models\Message
+{
+    $message = broadcastFailureMessage();
+    $message->delete();
+
+    return App\Models\Message::withTrashed()
+        ->with(['room', 'user'])
+        ->findOrFail($message->id);
 }
 
 function broadcastFailureReaction(): App\Models\MessageReaction

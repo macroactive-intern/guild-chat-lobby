@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Events\ReactionAdded;
 use App\Events\RoomStatusUpdated;
@@ -44,6 +46,8 @@ class MonitorFailedBroadcastJobs extends Command
     private function failedBroadcastJobs()
     {
         $broadcastEvents = [
+            MessageDeleted::class,
+            MessageEdited::class,
             MessageSent::class,
             ReactionAdded::class,
             RoomStatusUpdated::class,

@@ -1,5 +1,7 @@
 <?php
 
+use App\Events\MessageDeleted;
+use App\Events\MessageEdited;
 use App\Events\MessageSent;
 use App\Models\Guild;
 use App\Models\Message;
@@ -45,6 +47,56 @@ it('never exposes original content for deleted messages', function () {
     $payload = (new MessageSent($message))->broadcastWith();
 
     expect($payload['body'])->toBe('[message deleted]')
+        ->and(json_encode($payload))->not->toContain('Visible message.');
+});
+
+it('broadcasts message edited events to the private guild room channel', function () {
+    [$message, $user, $room] = messageSentEventMessage();
+    $message->forceFill([
+        'body' => 'Updated message.',
+        'edited_at' => now(),
+    ])->save();
+
+    $event = new MessageEdited($message);
+    $payload = $event->broadcastWith();
+
+    expect($event)->toBeInstanceOf(ShouldBroadcast::class)
+        ->and($event->broadcastOn()->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
+        ->and($event->broadcastAs())->toBe('message.edited')
+        ->and($payload)->toHaveKeys(['id', 'body', 'user', 'parent_id', 'is_deleted', 'edited_at', 'updated_at'])
+        ->and($payload['id'])->toBe($message->id)
+        ->and($payload['body'])->toBe('Updated message.')
+        ->and($payload['is_deleted'])->toBeFalse()
+        ->and($payload['user'])->toBe([
+            'id' => $user->id,
+            'name' => $user->name,
+        ])
+        ->and($payload['edited_at'])->not->toBeNull();
+});
+
+it('broadcasts message deleted events without exposing original content', function () {
+    [$message, $user, $room] = messageSentEventMessage();
+
+    $message->delete();
+    $message = Message::withTrashed()
+        ->with(['room', 'user'])
+        ->findOrFail($message->id);
+
+    $event = new MessageDeleted($message);
+    $payload = $event->broadcastWith();
+
+    expect($event)->toBeInstanceOf(ShouldBroadcast::class)
+        ->and($event->broadcastOn()->name)->toBe("private-guild.{$room->guild_id}.room.{$room->id}")
+        ->and($event->broadcastAs())->toBe('message.deleted')
+        ->and($payload)->toHaveKeys(['id', 'body', 'user', 'parent_id', 'is_deleted', 'deleted_at'])
+        ->and($payload['id'])->toBe($message->id)
+        ->and($payload['body'])->toBe('[message deleted]')
+        ->and($payload['is_deleted'])->toBeTrue()
+        ->and($payload['user'])->toBe([
+            'id' => $user->id,
+            'name' => $user->name,
+        ])
+        ->and($payload['deleted_at'])->not->toBeNull()
         ->and(json_encode($payload))->not->toContain('Visible message.');
 });
 
