@@ -73,6 +73,15 @@ php artisan reverb:start --debug
 php artisan queue:work
 ```
 
+Queued broadcast events retry up to three times with a short backoff. Failed broadcast jobs are stored in `failed_jobs` and monitored by the scheduler:
+
+```bash
+php artisan schedule:work
+php artisan chat:broadcast-failures
+```
+
+Set `BROADCAST_FAILED_JOB_ALERT_THRESHOLD` to control when the monitor logs a critical alert and exits with a failure status.
+
 Composer script shortcuts are also available:
 
 ```bash

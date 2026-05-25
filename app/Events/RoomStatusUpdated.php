@@ -14,6 +14,12 @@ class RoomStatusUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, Queueable, SerializesModels;
 
+    public int $tries = 3;
+
+    public int $backoff = 5;
+
+    public int $maxExceptions = 3;
+
     public function __construct(public Room $room)
     {
         //
