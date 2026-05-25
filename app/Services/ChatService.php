@@ -92,11 +92,15 @@ class ChatService
 
         $validator = Validator::make($data, [
             'body' => ['required', 'string', 'max:5000'],
-            'parent_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:messages,id,deleted_at,NULL'],
         ]);
 
         $validator->after(function ($validator) use ($room, $data): void {
-            if (! array_key_exists('parent_id', $data) || $data['parent_id'] === null) {
+            if (
+                ! array_key_exists('parent_id', $data)
+                || $data['parent_id'] === null
+                || $validator->errors()->has('parent_id')
+            ) {
                 return;
             }
 

@@ -238,8 +238,9 @@ it('rejects new messages in archived rooms', function () {
         ->postJson("/api/rooms/{$room->id}/messages", [
             'body' => 'Can anyone hear me?',
         ])
-        ->assertUnprocessable()
-        ->assertJsonPath('errors.room_id.0', 'Archived rooms cannot receive new messages.');
+        ->assertConflict()
+        ->assertJsonPath('error', 'archived_room')
+        ->assertJsonPath('message', 'Archived rooms cannot receive new messages.');
 });
 
 function realtimeChatMemberRoom(array $roomAttributes = []): array

@@ -56,6 +56,39 @@ it('returns 429 when chat service rate limiting rejects spam', function () {
         ]);
 });
 
+it('returns validation errors from chat service for invalid message payloads', function () {
+    Event::fake([MessageSent::class]);
+    [$user, $room] = messageControllerMemberRoom();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => '',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'The body field is required.')
+        ->assertJsonPath('errors.body.0', 'The body field is required.');
+});
+
+it('rejects soft deleted parent messages through chat service validation', function () {
+    Event::fake([MessageSent::class]);
+    [$user, $room] = messageControllerMemberRoom();
+    $parent = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Deleted parent.',
+    ]);
+    $parent->delete();
+
+    $this->actingAs($user)
+        ->postJson("/api/rooms/{$room->id}/messages", [
+            'body' => 'Invalid deleted-parent reply.',
+            'parent_id' => $parent->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'The selected parent id is invalid.')
+        ->assertJsonPath('errors.parent_id.0', 'The selected parent id is invalid.');
+});
+
 it('edits messages through the chat service for authors', function () {
     [$user, $room] = messageControllerMemberRoom();
     $message = Message::create([

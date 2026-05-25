@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Events\UserTyping;
 use App\Exceptions\TooManyMessagesException;
-use App\Http\Requests\StoreMessageRequest;
 use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use App\Models\MessageRead;
@@ -38,12 +37,12 @@ class MessageController extends Controller
         return MessageResource::collection($messages);
     }
 
-    public function store(StoreMessageRequest $request, Room $room, ChatService $chat): JsonResponse
+    public function store(Request $request, Room $room, ChatService $chat): JsonResponse
     {
         Gate::authorize('sendMessage', $room);
 
         try {
-            $message = $chat->send($request->user(), $room, $request->validated());
+            $message = $chat->send($request->user(), $room, $request->all());
         } catch (TooManyMessagesException $exception) {
             return $exception->render();
         }

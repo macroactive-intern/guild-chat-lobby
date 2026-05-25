@@ -68,8 +68,9 @@ it('makes archived rooms read-only for new messages', function () {
         ->postJson("/api/rooms/{$room->id}/messages", [
             'body' => 'This room should be read-only.',
         ])
-        ->assertUnprocessable()
-        ->assertJsonPath('errors.room_id.0', 'Archived rooms cannot receive new messages.');
+        ->assertConflict()
+        ->assertJsonPath('error', 'archived_room')
+        ->assertJsonPath('message', 'Archived rooms cannot receive new messages.');
 });
 
 it('broadcasts room status updates to the private room channel', function () {

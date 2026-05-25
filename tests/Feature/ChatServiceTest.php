@@ -108,6 +108,23 @@ it('validates reply parent messages belong to the same room', function () {
     ]);
 })->throws(ValidationException::class);
 
+it('rejects soft deleted parent messages', function () {
+    Event::fake([MessageSent::class]);
+
+    [$user, $room] = chatServiceRoomWithUser();
+    $parent = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Deleted parent.',
+    ]);
+    $parent->delete();
+
+    app(ChatService::class)->send($user, $room, [
+        'body' => 'Invalid deleted-parent reply.',
+        'parent_id' => $parent->id,
+    ]);
+})->throws(ValidationException::class);
+
 it('rejects sending messages to archived rooms', function () {
     Event::fake([MessageSent::class]);
 
