@@ -60,6 +60,18 @@ it('rate limits sent messages per user and room', function () {
     ]);
 })->throws(TooManyMessagesException::class);
 
+it('checks send rate limits before validation', function () {
+    Event::fake([MessageSent::class]);
+
+    [$user, $room] = chatServiceRoomWithUser(['is_archived' => true]);
+    $lock = Cache::lock("chat-rate.{$user->id}.{$room->id}", 1);
+    $lock->get();
+
+    app(ChatService::class)->send($user, $room, [
+        'body' => 'This should hit the lock before archived validation.',
+    ]);
+})->throws(TooManyMessagesException::class);
+
 it('allows simultaneous messages in different rooms', function () {
     Event::fake([MessageSent::class]);
 

@@ -25,8 +25,8 @@ class ChatService
      */
     public function send(User $user, Room $room, array $data): Message
     {
-        $validated = $this->validateMessageData($room, $data);
         $this->hitRateLimit($user->id, $room->id);
+        $validated = $this->validateMessageData($room, $data);
 
         $message = DB::transaction(fn () => Message::create([
             'room_id' => $room->id,
