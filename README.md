@@ -92,6 +92,66 @@ VITE_REVERB_SCHEME="${REVERB_SCHEME}"
 
 The generated `resources/js/echo.js` shows the matching Laravel Echo client setup. Since this repository is API-only, frontend packages are not installed here; install `laravel-echo` and `pusher-js` in the frontend app that connects to this API.
 
+### Echo Presence Setup
+
+Install frontend dependencies in the consuming Vite app:
+
+```bash
+npm install laravel-echo pusher-js
+```
+
+`resources/js/echo.js` exports:
+
+- `createEcho({ token })` for Reverb + Sanctum bearer token auth.
+- `subscribeToRoomPresence(...)` for presence channel subscriptions.
+- `roomPresenceChannelName(guildId, roomId)` for `guild.{guildId}.room.{roomId}`.
+
+Presence subscriptions support:
+
+- `here(users)` for the current online room members.
+- `joining(user)` when a member enters the room channel.
+- `leaving(user)` when a member exits the room channel.
+
+The room presence channel listens for:
+
+- `MessageSent`
+- `UserTyping`
+
+Plain JavaScript example:
+
+```js
+import { createEcho, subscribeToRoomPresence } from './echo';
+
+const echo = createEcho({ token: localStorage.getItem('api_token') });
+
+subscribeToRoomPresence({
+    echo,
+    guildId: 1,
+    roomId: 1,
+    onHere: (users) => console.log(users),
+    onJoining: (user) => console.log('joining', user),
+    onLeaving: (user) => console.log('leaving', user),
+    onMessageSent: (message) => console.log('MessageSent', message),
+    onUserTyping: (typing) => console.log('UserTyping', typing),
+});
+```
+
+Vue integration example:
+
+```js
+import { computed } from 'vue';
+import { useRoomPresence } from './examples/useRoomPresence';
+
+const guildId = computed(() => 1);
+const roomId = computed(() => 1);
+
+const { onlineUsers, messages, typingUsers } = useRoomPresence({
+    guildId,
+    roomId,
+    token: localStorage.getItem('api_token'),
+});
+```
+
 ## Reverb Environment
 
 `REVERB_APP_ID` identifies the Reverb application configured in `config/reverb.php`.

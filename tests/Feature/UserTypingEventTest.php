@@ -20,13 +20,15 @@ it('broadcasts typing indicators to the private guild room channel', function ()
 it('broadcasts only transient typing payload data', function () {
     [$user, $room] = userTypingEventRoom();
 
-    $payload = (new UserTyping($user, $room))->broadcastWith();
+    $event = new UserTyping($user, $room);
+    $payload = $event->broadcastWith();
 
-    expect($payload)->toBe([
-        'room_id' => $room->id,
-        'user_id' => $user->id,
-        'user_name' => $user->name,
-    ]);
+    expect($event->broadcastAs())->toBe('UserTyping')
+        ->and($payload)->toBe([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+        ]);
 });
 
 it('supports broadcasting typing indicators to others', function () {
