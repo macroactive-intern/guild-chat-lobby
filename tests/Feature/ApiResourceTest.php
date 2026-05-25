@@ -64,6 +64,47 @@ it('serializes messages with eager loaded users and nested replies', function ()
         ->and($replyResource['parent_id'])->toBe($message->id);
 });
 
+it('fails fast when message resources are missing required eager loads', function () {
+    $user = User::factory()->create();
+    $guild = Guild::create(['name' => 'Raid Guild']);
+    $room = Room::create([
+        'guild_id' => $guild->id,
+        'name' => 'general',
+    ]);
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'Missing eager loads.',
+    ]);
+
+    (new MessageResource($message))->resolve();
+})->throws(\LogicException::class, 'App\Http\Resources\MessageResource requires the [user] relationship to be eager loaded.');
+
+it('omits optional replies when they are not eager loaded', function () {
+    $user = User::factory()->create(['name' => 'Nate']);
+    $guild = Guild::create(['name' => 'Raid Guild']);
+    $room = Room::create([
+        'guild_id' => $guild->id,
+        'name' => 'general',
+    ]);
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'body' => 'No replies loaded.',
+    ]);
+    Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'parent_id' => $message->id,
+        'body' => 'Hidden by missing eager load.',
+    ]);
+
+    $message->load('user');
+
+    expect((new MessageResource($message))->resolve())
+        ->not->toHaveKey('replies');
+});
+
 it('masks soft deleted message bodies without exposing original content', function () {
     $user = User::factory()->create();
     $guild = Guild::create(['name' => 'Raid Guild']);
